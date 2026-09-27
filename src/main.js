@@ -813,7 +813,8 @@ function connectOnce(params, callback) {
         timerId = null;
         if (socket) {
             try {
-                socket.close();
+                // 必须传一个对象：Bob 1.21.0 上不带参数的 close() 会在日志里记一条未捕获异常
+                socket.close({});
             } catch (ignored2) {
                 // 连接本来就没建立起来
             }

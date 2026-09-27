@@ -211,6 +211,7 @@ globalThis.$websocket = {
             sent: [],
             openCalls: 0,
             closeCalls: 0,
+            closeArgTypes: [],
             readyState: 0,
             listenOpen: function (fn) {
                 this.handlers.open = fn;
@@ -236,7 +237,8 @@ globalThis.$websocket = {
                     this.script(this);
                 }
             },
-            close: function () {
+            close: function (options) {
+                this.closeArgTypes.push(arguments.length === 0 ? "none" : typeof options);
                 this.closeCalls += 1;
                 this.readyState = 3;
                 if (echoCloseEvent) {
@@ -854,6 +856,7 @@ var XIAOXIAO_FULL = "Microsoft Server Speech Text to Speech Voice (zh-CN, Xiaoxi
         ssmlOf(sockets[0]).indexOf("<voice name='" + XIAOXIAO_FULL + "'>") > 0 &&
         ssmlOf(sockets[0]).indexOf(">你好，世界</prosody>") > 0, "第二条是 ssml，带完整音色名和文本");
     eq(sockets[0].closeCalls, 1, "成功后关闭连接");
+    eq(sockets[0].closeArgTypes[0], "object", "close 传入对象参数（Bob 1.21.0 不带参数会记未捕获异常）");
     eq(activeTimers(), 0, "成功后定时器被取消");
     eq(T.activeSocketCount(), 0, "成功后不再持有 socket");
     eq(timers.length, 1, "每条连接一个超时定时器");
