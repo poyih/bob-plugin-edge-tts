@@ -1,6 +1,13 @@
 # 任务卡 2：实现 Edge TTS 免 Key Bob 插件
 
-> 用法：在 Mac 上打开本仓库的本地克隆，新开一个 Claude Code 会话，把本文件全文作为第一条消息贴进去。建议先完成任务卡 1（`docs/tasks/01-poc-websocket.md`），其结论会写在 `docs/poc-findings.md`。
+> 用法：本地还没有仓库的话，先克隆并切到本文件所在分支，再在该目录新开一个 Claude Code 会话，把本文件全文作为第一条消息贴进去；或者自己按步骤手动执行。建议先完成任务卡 1（`docs/tasks/01-poc-websocket.md`），其结论会写在 `docs/poc-findings.md`。
+>
+> ```bash
+> git clone -b claude/gallant-bardeen-stykfj https://github.com/poyih/bob-plugin-edge-tts.git
+> cd bob-plugin-edge-tts && claude
+> ```
+>
+> PR #1 合并后分支会消失，届时去掉 `-b ...` 直接克隆 main 即可。
 
 ## 目标
 
