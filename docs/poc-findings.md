@@ -12,6 +12,8 @@
 
 中文和英文都在 Bob 里合成并播放成功。
 
+另有一个没预料到的发现，直接影响正式插件的设计：**连接失败时 Bob 不给任何回调。** 连接被拒、域名不存在、TCP 被掐断、握手后服务端沉默，这四种情况下 `listenError` 和 `listenClose` 都不会来，`timeoutInterval` 也不起作用。插件必须自带定时器。详见第 6 节。
+
 ## 1. 网络检查
 
 ```bash
@@ -107,9 +109,10 @@ Cookie: muid=954CCA237036995628F02D85DB32F05C;
 | 场景 | 回调 | error 对象 | 耗时 |
 |---|---|---|---|
 | 签名时间偏 900 秒 | `listenError`，`readyState` 为 3 | `{"type":"unknownError","code":0,"message":"notAnUpgrade(403)"}` | 约 0.7 秒 |
-| 不传握手头 | 同上 | 同上 | 约 0.6 秒 |
+| 不传握手头 | 同上 | 同上 | 约 0.6 到 0.8 秒 |
+| 本机探针直接回 403 | 同上 | 同上 | 8 毫秒 |
 
-两种情况都只来了 `listenError`，之后 1.5 秒内没有 `listenClose`。HTTP 状态码只出现在 `message` 的文本里，`code` 恒为 0。
+三种情况都只来了 `listenError`，之后 1.5 秒内没有 `listenClose`。HTTP 状态码只出现在 `message` 的文本里，`code` 恒为 0。两次独立运行的结果一致。
 
 ## 4. 二进制帧与 `$data`
 
@@ -166,15 +169,35 @@ Cookie: muid=954CCA237036995628F02D85DB32F05C;
 
 两次都没有畸形帧。`completion({ result: { type: "base64", value, raw } })` 交回的 mp3 被 Bob 正常播放。
 
-## 6. 其他发现
+## 6. 故障时 Bob 的回调
+
+由本机探针扮演出故障的服务端，另加两种连不上的地址。每种场景里 PoC 自己挂了一个 8 秒的定时器，到点后再观察 1.5 秒。
+
+| 场景 | Bob 给的回调 | 期间的 `readyState` |
+|---|---|---|
+| 握手回 403 | `listenError`，见 3.3 | 3 |
+| 服务端发 Close 帧，code 1011 | `listenClose`，code 是 1011，reason 是 `server going away`。没有 `listenError` | 3 |
+| TCP 被直接掐断，没有 Close 帧 | **没有任何回调** | 一直是 1 |
+| 握手成功后服务端一声不吭 | **没有任何回调** | 一直是 1 |
+| 连接被拒，地址是 `ws://127.0.0.1:1` | **没有任何回调** | 一直是 0 |
+| 域名不存在，地址是 `wss://edge-tts-poc.invalid` | **没有任何回调** | 一直是 0 |
+
+后三种场景把 `timeoutInterval` 设成了 3 秒，结果 9.5 秒的观察期内什么都没发生。`timeoutInterval` 不能指望。
+
+TCP 被掐断之后 `readyState` 仍然是 1，所以也不能靠轮询 `readyState` 来发现断线。
+
+音色读不了当前语言时，微软的表现是正常握手、正常返回 `turn.start` 和 `response`，然后只发一帧 105 字节的空音频帧就 `turn.end`。实测用 en-US-AriaNeural 读中文得到的就是这个结果。
+
+## 7. 其他发现
 
 - **`close()` 不带参数会让 Bob 记一条未捕获异常。** 日志里出现 `TypeError: undefined is not an object (evaluating 'socket.close()')`，连接仍然正常关闭，插件侧的 try/catch 也捕获不到。`close({})` 和 `close({ code: 1000 })` 都没有这个问题。官方文档的示例恰好是不带参数的写法。
 - **主动关闭后 `listenClose` 收到的是 code 1000、reason `cancelled`。** 这是客户端自己关闭的回声，不是错误。
 - **Bob 先判断语种，再决定要不要调用插件。** 语种不在 `supportLanguages()` 里时 Bob 直接报「获取音频失败」，`tts` 根本不会被调用。纯网址的文本会被判成德语。
 - **`$http` 能读到响应头。** `resp.response.headers.Date` 可用，键名区分大小写，`headers.date` 是 `undefined`。用它测得本机与微软服务器相差 1 秒。握手被拒时拿不到响应头，时钟偏差兜底要走这条路。
 - **`$http` 返回的 `data` 已经解析成数组。** 音色列表当前有 322 个音色。
+- **`toHex(true)` 返回大写。** `toHex()` 和 `toHex(false)` 返回小写。
 
-## 7. 给正式实现的建议
+## 8. 给正式实现的建议
 
 1. 握手头放在 `header` 里，必须带 Edge 的 User-Agent。Cookie 和 Origin 目前可省，为了与 Edge 行为一致仍建议带上。
 2. 帧解析走 `toByteArray()`，不要依赖 `length`，不要用 `subData` 取帧尾，不要用 `toHex`。
@@ -183,22 +206,17 @@ Cookie: muid=954CCA237036995628F02D85DB32F05C;
 5. 握手失败后用 `$http` 请求音色列表，读 `Date` 头估算时钟偏差，重签一次再试。查响应头要忽略大小写。
 6. `supportLanguages()` 决定了 Bob 会把哪些语言交给插件，语言表要尽量全。
 7. `completion` 要防重：主动关闭之后还会来一次 `listenClose`。
+8. 超时全部由插件自己的 `$timer` 负责，至少三条期限：握手多久没完成、连上之后多久没收到数据、整条连接多久没结束。不要依赖 `timeoutInterval`，也不要等 `listenError`。
 
-## 8. 尚未验证
-
-会话中途因用量上限中断，以下几项没有跑完：
+## 9. 尚未验证
 
 | 项目 | 状态 |
 |---|---|
-| 连接被拒时的回调形态 | 诊断模式第 5 步刚发起，结果没有录到 |
-| 域名不存在时的回调形态 | 未跑 |
-| 握手直接回 403、服务端发 Close 帧、TCP 被掐断、握手后无响应 | 对应的「诊断二」模式已写好并通过离线自测，未在 Bob 里跑过 |
-| `timeoutInterval` 到点后的回调形态 | 未跑 |
 | 真的把系统时间调偏 | 未做。目前只用错误的时间签名来模拟 |
+| 连接失败的回调是否会在更久之后到来 | 只观察了 9.5 秒。Bob 默认的 `timeoutInterval` 是 60 秒，不排除那时才报错 |
+| 不带参数的 `close()` 记异常 | 只观察到一次，之后的运行都改用 `close({})`，没有再出现 |
 
-`poc/main.js` 在最后一次装进 Bob 之后又加了「诊断二」模式，这部分代码只经过离线自测。
-
-## 9. 复现方法
+## 10. 复现方法
 
 ```bash
 # 离线自测
