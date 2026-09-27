@@ -1,4 +1,13 @@
 {
   "identifier": "com.poyih.bob.plugin.edge.tts",
-  "versions": []
+  "versions": [
+    {
+      "version": "1.0.0",
+      "desc": "首个版本：免 API Key 调用 Edge「大声朗读」语音合成，覆盖 83 种语言，长文本自动分段，系统时间不准时自动校准。",
+      "sha256": "714463c1c1219b5b436f2c9af361dd2bc251507d4e8549e9f4d01e81b1b52d4d",
+      "url": "https://github.com/poyih/bob-plugin-edge-tts/releases/download/v1.0.0/bob-plugin-edge-tts-1.0.0.bobplugin",
+      "minBobVersion": "1.8.0",
+      "timestamp": 1790491044000
+    }
+  ]
 }
