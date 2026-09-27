@@ -1,0 +1,90 @@
+[2026-09-27 15:55:23.425 ● TranslateViewController ● 326 ● I] playInputText() ● 播放输入框：text=诊断 poc-diag2 ws://127.0.0.1:18765
+[2026-09-27 15:55:23.426 ● TranslateViewController ● 1636 ● I] playAudio(text:lang:) ● 调用 TTS 服务：tts=<Bob.PluginTTS: 0x74837043c0><type=300; name=Edge TTS PoC（仅验证）; identifier=3-300-1790479994-0387><plugin: identifer=com.poyih.bob.plugin.edge.tts.poc; version=0.0.1; homepage=https://github.com/poyih/bob-plugin-edge-tts>; text=诊断 poc-diag2 ws://127.0.0.1:18765; lang=英语
+15:55:23.427 BEGIN mode=diag2 lang=en voice=en-US-AriaNeural chars=33 queryKeys=lang,text bob=1.21.0(260) os=macOS 27.0.0 now=2026-09-27T05:55:23.426Z
+15:55:23.427 selftest ok (5 vectors)
+15:55:23.427 api $websocket= | constructor,new | toString,toLocaleString,valueOf,hasOwnProperty,propertyIsEnumerable,isPrototypeOf,__defineGetter__,__defineSetter__,__lookupGetter__,__lookupSetter__,__proto__,constructor
+15:55:23.427 api $data= | constructor,fromUTF8,fromHex,fromBase64,fromByteArray,fromData,isData | toString,toLocaleString,valueOf,hasOwnProperty,propertyIsEnumerable,isPrototypeOf,__defineGetter__,__defineSetter__,__lookupGetter__,__lookupSetter__,__proto__,constructor
+15:55:23.427 api $timer= | constructor,schedule,invalidate | toString,toLocaleString,valueOf,hasOwnProperty,propertyIsEnumerable,isPrototypeOf,__defineGetter__,__defineSetter__,__lookupGetter__,__lookupSetter__,__proto__,constructor
+15:55:23.427 diag2 step 1/6
+15:55:23.427 data toHex()=abcdef0a toHex(true)=ABCDEF0A toHex(false)=abcdef0a
+15:55:23.427 diag2 step 2/6
+15:55:23.427 diag2-reject403 connect url=ws://127.0.0.1:18765/reject403?TrustedClientToken=6A5AA1D4EAFF4E9FB37E23D68491D6F4&ConnectionId=<32hex>&Sec-MS-GEC=D1C1628CC796A083284EA3F429A881A8AB2AF7001FFDABBC686D5A825768F0D8&Sec-MS-GEC-Version=1-143.0.3650.75
+15:55:23.427 diag2-reject403 connect params={"allowSelfSignedSSLCertificates":false,"timeoutInterval":30,"header":{"User-Agent":"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0","Origin":"chrome-extension://jdiccldimpdaibmpdkjnbmckianbfold","Cookie":"muid=0A56A463DA73CE67A662A63B0017826D;","Pragma":"no-cache","Cache-Control":"no-cache","Accept-Language":"en-US,en;q=0.9"}}
+15:55:23.428 diag2-reject403 api socket= | constructor,open,close,sendString,sendData,ping,pong,listenOpen,listenClose,listenError,listenReceiveString,listenReceiveData,listenReceivePing,listenReceivePong,readyState | toString,toLocaleString,valueOf,hasOwnProperty,propertyIsEnumerable,isPrototypeOf,__defineGetter__,__defineSetter__,__lookupGetter__,__lookupSetter__,__proto__,constructor
+15:55:23.428 diag2-reject403 timer id typeof=number value=16
+15:55:23.428 diag2-reject403 #1 +1ms CALL open() readyState=3 ret=undefined
+15:55:23.436 diag2-reject403 #2 +8ms ERROR args=2 readyState=3 code=0 type=unknownError message=notAnUpgrade(403) typeof=object json={"message":"notAnUpgrade(403)","type":"unknownError","code":0} string=[object Object] names=message,type,code | toString,toLocaleString,valueOf,hasOwnProperty,propertyIsEnumerable,isPrototypeOf,__defineGetter__,__defineSetter__,__lookupGetter__,__lookupSetter__,__proto__,constructor
+15:55:23.436 diag2-reject403 #3 +9ms FAIL type=api message=WebSocket 握手或传输出错，详见日志
+15:55:24.937 diag2-reject403 #4 +1510ms SETTLED (结束之后) readyState=3
+15:55:24.938 diag2-reject403 #5 +1510ms CALLED close (结束之后) form=empty ret=undefined readyState=3
+15:55:25.939 diag2-reject403 SUMMARY {"label":"diag2-reject403","textFrames":0,"binaryFrames":0,"audioFrames":0,"emptyAudioFrames":0,"malformedFrames":0,"audioBytes":0,"minFrame":null,"maxFrame":null,"events":["CALL open()@1","ERROR@8","FAIL@9","SETTLED@1510*","CALLED close@1510*"],"openMs":null,"firstAudioMs":null,"turnEndMs":null,"finishMs":9}
+15:55:25.939 diag2 step 3/6
+15:55:25.940 diag2-close-frame connect url=ws://127.0.0.1:18765/close-frame?TrustedClientToken=6A5AA1D4EAFF4E9FB37E23D68491D6F4&ConnectionId=<32hex>&Sec-MS-GEC=D1C1628CC796A083284EA3F429A881A8AB2AF7001FFDABBC686D5A825768F0D8&Sec-MS-GEC-Version=1-143.0.3650.75
+15:55:25.940 diag2-close-frame connect params={"allowSelfSignedSSLCertificates":false,"timeoutInterval":30,"header":{"User-Agent":"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0","Origin":"chrome-extension://jdiccldimpdaibmpdkjnbmckianbfold","Cookie":"muid=B9C9551B29AFB63A691C7E7157EC281F;","Pragma":"no-cache","Cache-Control":"no-cache","Accept-Language":"en-US,en;q=0.9"}}
+15:55:25.941 diag2-close-frame api socket= | constructor,open,close,sendString,sendData,ping,pong,listenOpen,listenClose,listenError,listenReceiveString,listenReceiveData,listenReceivePing,listenReceivePong,readyState | toString,toLocaleString,valueOf,hasOwnProperty,propertyIsEnumerable,isPrototypeOf,__defineGetter__,__defineSetter__,__lookupGetter__,__lookupSetter__,__proto__,constructor
+15:55:25.941 diag2-close-frame timer id typeof=number value=19
+15:55:25.941 diag2-close-frame #1 +2ms CALL open() readyState=3 ret=undefined
+15:55:25.949 diag2-close-frame #2 +9ms OPEN args=1 readyState=1 sameSocket=true
+15:55:25.949 diag2-close-frame #3 +9ms SEND speech.config chars=315 ret=undefined
+15:55:25.949 diag2-close-frame #4 +10ms SEND ssml chars=360 ret=undefined
+15:55:25.950 diag2-close-frame #5 +11ms TEXT n=1 args=2 typeof=string chars=113 path=turn.start head200="X-RequestId:0123456789abcdef0123456789abcdef\r\nContent-Type:application/json; charset=utf-8\r\nPath:turn.start\r\n\r\n{}"
+15:55:25.950 diag2-close-frame api data= | constructor,toUTF8,toHex,toBase64,toByteArray,readUInt8,writeUInt8,subData,appendData | toString,toLocaleString,valueOf,hasOwnProperty,propertyIsEnumerable,isPrototypeOf,__defineGetter__,__defineSetter__,__lookupGetter__,__lookupSetter__,__proto__,constructor
+15:55:25.956 diag2-close-frame #6 +16ms DATA n=1 args=2 length=2085 N=83 audioBytes=2000 wellFormed=true info={"typeofData":"object","isData":true,"typeofLength":"undefined","lengthInData":false,"typeofToByteArray":"function","typeofReadUInt8":"function","typeofToHex":"function","typeofSubData":"function","typeofToUTF8":"function","typeofToBase64":"function","typeofAppendData":"function","byteArrayIsArray":true,"lengthProp":null,"lengthByteArray":2085,"lengthHex":2085,"length":2085,"nReadUInt8":83,"nByteArray":83,"nHex":83,"n":83,"wellFormed":true,"headerAgree":true,"startsWithRequestId":true,"subDataTail":"非$data:undefined","audioVia":"fromByteArray"} header="X-RequestId:0123456789abcdef0123456789abcdef\r\nContent-Type:audio/mpeg\r\nPath:audio\r\n"
+15:55:26.251 diag2-close-frame #7 +312ms CLOSE args=3 readyState=3 code=typeof=number json=1011 string=1011 reason=typeof=string json="server going away" string=server going away
+15:55:26.251 diag2-close-frame #8 +312ms FAIL type=api message=连接在 turn.end 之前被关闭
+15:55:27.753 diag2-close-frame #9 +1813ms SETTLED (结束之后) readyState=3
+15:55:27.753 diag2-close-frame #10 +1814ms CALLED close (结束之后) form=empty ret=undefined readyState=3
+15:55:28.754 diag2-close-frame SUMMARY {"label":"diag2-close-frame","textFrames":1,"binaryFrames":1,"audioFrames":1,"emptyAudioFrames":0,"malformedFrames":0,"audioBytes":2000,"minFrame":2085,"maxFrame":2085,"events":["CALL open()@2","OPEN@9","SEND speech.config@9","SEND ssml@10","CLOSE@312","FAIL@312","SETTLED@1813*","CALLED close@1814*"],"openMs":9,"firstAudioMs":16,"turnEndMs":null,"finishMs":312}
+15:55:28.754 diag2 step 4/6
+15:55:28.754 diag2-drop connect url=ws://127.0.0.1:18765/drop?TrustedClientToken=6A5AA1D4EAFF4E9FB37E23D68491D6F4&ConnectionId=<32hex>&Sec-MS-GEC=D1C1628CC796A083284EA3F429A881A8AB2AF7001FFDABBC686D5A825768F0D8&Sec-MS-GEC-Version=1-143.0.3650.75
+15:55:28.754 diag2-drop connect params={"allowSelfSignedSSLCertificates":false,"timeoutInterval":30,"header":{"User-Agent":"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0","Origin":"chrome-extension://jdiccldimpdaibmpdkjnbmckianbfold","Cookie":"muid=975A0D630B6C597FB4F587950F404D31;","Pragma":"no-cache","Cache-Control":"no-cache","Accept-Language":"en-US,en;q=0.9"}}
+15:55:28.755 diag2-drop api socket= | constructor,open,close,sendString,sendData,ping,pong,listenOpen,listenClose,listenError,listenReceiveString,listenReceiveData,listenReceivePing,listenReceivePong,readyState | toString,toLocaleString,valueOf,hasOwnProperty,propertyIsEnumerable,isPrototypeOf,__defineGetter__,__defineSetter__,__lookupGetter__,__lookupSetter__,__proto__,constructor
+15:55:28.755 diag2-drop timer id typeof=number value=22
+15:55:28.755 diag2-drop #1 +1ms CALL open() readyState=3 ret=undefined
+15:55:28.758 diag2-drop #2 +3ms OPEN args=1 readyState=1 sameSocket=true
+15:55:28.758 diag2-drop #3 +3ms SEND speech.config chars=315 ret=undefined
+15:55:28.758 diag2-drop #4 +3ms SEND ssml chars=360 ret=undefined
+15:55:28.759 diag2-drop #5 +4ms TEXT n=1 args=2 typeof=string chars=113 path=turn.start head200="X-RequestId:0123456789abcdef0123456789abcdef\r\nContent-Type:application/json; charset=utf-8\r\nPath:turn.start\r\n\r\n{}"
+15:55:28.759 diag2-drop api data= | constructor,toUTF8,toHex,toBase64,toByteArray,readUInt8,writeUInt8,subData,appendData | toString,toLocaleString,valueOf,hasOwnProperty,propertyIsEnumerable,isPrototypeOf,__defineGetter__,__defineSetter__,__lookupGetter__,__lookupSetter__,__proto__,constructor
+15:55:28.764 diag2-drop #6 +9ms DATA n=1 args=2 length=2085 N=83 audioBytes=2000 wellFormed=true info={"typeofData":"object","isData":true,"typeofLength":"undefined","lengthInData":false,"typeofToByteArray":"function","typeofReadUInt8":"function","typeofToHex":"function","typeofSubData":"function","typeofToUTF8":"function","typeofToBase64":"function","typeofAppendData":"function","byteArrayIsArray":true,"lengthProp":null,"lengthByteArray":2085,"lengthHex":2085,"length":2085,"nReadUInt8":83,"nByteArray":83,"nHex":83,"n":83,"wellFormed":true,"headerAgree":true,"startsWithRequestId":true,"subDataTail":"非$data:undefined","audioVia":"fromByteArray"} header="X-RequestId:0123456789abcdef0123456789abcdef\r\nContent-Type:audio/mpeg\r\nPath:audio\r\n"
+15:55:36.756 diag2-drop #7 +8002ms TIMER 插件自己的定时器到点 readyState=1
+15:55:36.756 diag2-drop #8 +8002ms FAIL type=network message=8 秒内没有收到 turn.end
+15:55:38.258 diag2-drop #9 +9503ms SETTLED (结束之后) readyState=1
+15:55:38.258 diag2-drop #10 +9504ms CALLED close (结束之后) form=empty ret=undefined readyState=2
+15:55:38.260 diag2-drop #11 +9506ms CLOSE (结束之后) args=3 readyState=3 code=typeof=number json=1000 string=1000 reason=typeof=string json="cancelled" string=cancelled
+15:55:39.260 diag2-drop SUMMARY {"label":"diag2-drop","textFrames":1,"binaryFrames":1,"audioFrames":1,"emptyAudioFrames":0,"malformedFrames":0,"audioBytes":2000,"minFrame":2085,"maxFrame":2085,"events":["CALL open()@1","OPEN@3","SEND speech.config@3","SEND ssml@3","TIMER@8002","FAIL@8002","SETTLED@9503*","CALLED close@9504*","CLOSE@9506*"],"openMs":3,"firstAudioMs":9,"turnEndMs":null,"finishMs":8002}
+15:55:39.260 diag2 step 5/6
+15:55:39.261 diag2-hang connect url=ws://127.0.0.1:18765/hang?TrustedClientToken=6A5AA1D4EAFF4E9FB37E23D68491D6F4&ConnectionId=<32hex>&Sec-MS-GEC=D1C1628CC796A083284EA3F429A881A8AB2AF7001FFDABBC686D5A825768F0D8&Sec-MS-GEC-Version=1-143.0.3650.75
+15:55:39.261 diag2-hang connect params={"allowSelfSignedSSLCertificates":false,"timeoutInterval":3,"header":{"User-Agent":"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0","Origin":"chrome-extension://jdiccldimpdaibmpdkjnbmckianbfold","Cookie":"muid=DF51903C80081D802F66E34442D6C3CA;","Pragma":"no-cache","Cache-Control":"no-cache","Accept-Language":"en-US,en;q=0.9"}}
+15:55:39.261 diag2-hang api socket= | constructor,open,close,sendString,sendData,ping,pong,listenOpen,listenClose,listenError,listenReceiveString,listenReceiveData,listenReceivePing,listenReceivePong,readyState | toString,toLocaleString,valueOf,hasOwnProperty,propertyIsEnumerable,isPrototypeOf,__defineGetter__,__defineSetter__,__lookupGetter__,__lookupSetter__,__proto__,constructor
+15:55:39.261 diag2-hang timer id typeof=number value=25
+15:55:39.262 diag2-hang #1 +1ms CALL open() readyState=3 ret=undefined
+15:55:39.266 diag2-hang #2 +5ms OPEN args=1 readyState=1 sameSocket=true
+15:55:39.266 diag2-hang #3 +5ms SEND speech.config chars=315 ret=undefined
+15:55:39.266 diag2-hang #4 +5ms SEND ssml chars=360 ret=undefined
+15:55:47.262 diag2-hang #5 +8001ms TIMER 插件自己的定时器到点 readyState=1
+15:55:47.262 diag2-hang #6 +8001ms FAIL type=network message=8 秒内没有收到 turn.end
+15:55:48.764 diag2-hang #7 +9503ms SETTLED (结束之后) readyState=1
+15:55:48.764 diag2-hang #8 +9503ms CALLED close (结束之后) form=empty ret=undefined readyState=2
+15:55:48.765 diag2-hang #9 +9504ms CLOSE (结束之后) args=3 readyState=3 code=typeof=number json=1000 string=1000 reason=typeof=string json="cancelled" string=cancelled
+15:55:49.765 diag2-hang SUMMARY {"label":"diag2-hang","textFrames":0,"binaryFrames":0,"audioFrames":0,"emptyAudioFrames":0,"malformedFrames":0,"audioBytes":0,"minFrame":null,"maxFrame":null,"events":["CALL open()@1","OPEN@5","SEND speech.config@5","SEND ssml@5","TIMER@8001","FAIL@8001","SETTLED@9503*","CALLED close@9503*","CLOSE@9504*"],"openMs":5,"firstAudioMs":null,"turnEndMs":null,"finishMs":8002}
+15:55:49.765 diag2 step 6/6
+15:55:49.766 diag2-edge connect url=wss://speech.platform.bing.com/consumer/speech/synthesize/readaloud/edge/v1?TrustedClientToken=6A5AA1D4EAFF4E9FB37E23D68491D6F4&ConnectionId=<32hex>&Sec-MS-GEC=D1C1628CC796A083284EA3F429A881A8AB2AF7001FFDABBC686D5A825768F0D8&Sec-MS-GEC-Version=1-143.0.3650.75
+15:55:49.766 diag2-edge connect params={"allowSelfSignedSSLCertificates":false,"timeoutInterval":30,"header":{"User-Agent":"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0","Origin":"chrome-extension://jdiccldimpdaibmpdkjnbmckianbfold","Cookie":"muid=F1453E1FB35B985B9EBCEC88CD4EF208;","Pragma":"no-cache","Cache-Control":"no-cache","Accept-Language":"en-US,en;q=0.9"}}
+15:55:49.766 diag2-edge api socket= | constructor,open,close,sendString,sendData,ping,pong,listenOpen,listenClose,listenError,listenReceiveString,listenReceiveData,listenReceivePing,listenReceivePong,readyState | toString,toLocaleString,valueOf,hasOwnProperty,propertyIsEnumerable,isPrototypeOf,__defineGetter__,__defineSetter__,__lookupGetter__,__lookupSetter__,__proto__,constructor
+15:55:49.766 diag2-edge timer id typeof=number value=28
+15:55:49.767 diag2-edge #1 +1ms CALL open() readyState=3 ret=undefined
+15:55:50.521 diag2-edge #2 +755ms OPEN args=1 readyState=1 sameSocket=true
+15:55:50.521 diag2-edge #3 +755ms SEND speech.config chars=315 ret=undefined
+15:55:50.521 diag2-edge #4 +755ms SEND ssml chars=360 ret=undefined
+15:55:50.676 diag2-edge #5 +910ms TEXT n=1 args=2 typeof=string chars=186 path=turn.start head200="X-RequestId:f2bd9b91bdde63a6f4ae42e4bd3f3927\r\nContent-Type:application/json; charset=utf-8\r\nPath:turn.start\r\n\r\n{\n  \"context\": {\n    \"serviceTag\": \"e05a1635b1fa47089cc3698a239bb78f\"\n  }\n}"
+15:55:50.676 diag2-edge #6 +911ms TEXT n=2 args=2 typeof=string chars=242 path=response head200="X-RequestId:f2bd9b91bdde63a6f4ae42e4bd3f3927\r\nContent-Type:application/json; charset=utf-8\r\nPath:response\r\n\r\n{\"context\":{\"serviceTag\":\"e05a1635b1fa47089cc3698a239bb78f\"},\"audio\":{\"type\":\"inline\",\"stre"
+15:55:50.711 diag2-edge api data= | constructor,toUTF8,toHex,toBase64,toByteArray,readUInt8,writeUInt8,subData,appendData | toString,toLocaleString,valueOf,hasOwnProperty,propertyIsEnumerable,isPrototypeOf,__defineGetter__,__defineSetter__,__lookupGetter__,__lookupSetter__,__proto__,constructor
+15:55:50.711 diag2-edge #7 +946ms DATA n=1 args=2 length=105 N=103 audioBytes=0 wellFormed=true info={"typeofData":"object","isData":true,"typeofLength":"undefined","lengthInData":false,"typeofToByteArray":"function","typeofReadUInt8":"function","typeofToHex":"function","typeofSubData":"function","typeofToUTF8":"function","typeofToBase64":"function","typeofAppendData":"function","byteArrayIsArray":true,"lengthProp":null,"lengthByteArray":105,"lengthHex":105,"length":105,"nReadUInt8":103,"nByteArray":103,"nHex":103,"n":103,"wellFormed":true,"headerAgree":false,"startsWithRequestId":true} header="X-RequestId:f2bd9b91bdde63a6f4ae42e4bd3f3927\r\nX-StreamId:0E04E37CA45943608863EBDE55E4360A\r\nPath:audio\r\n"
+15:55:50.712 diag2-edge #8 +946ms TEXT n=3 args=2 typeof=string chars=111 path=turn.end head200="X-RequestId:f2bd9b91bdde63a6f4ae42e4bd3f3927\r\nContent-Type:application/json; charset=utf-8\r\nPath:turn.end\r\n\r\n{}"
+15:55:50.712 diag2-edge #9 +946ms FAIL type=api message=收到 turn.end 但没有音频
+15:55:50.712 diag2-edge #10 +946ms CALLED close (结束之后) form=empty ret=undefined readyState=2
+15:55:50.712 diag2-edge SUMMARY {"label":"diag2-edge","textFrames":3,"binaryFrames":1,"audioFrames":0,"emptyAudioFrames":1,"malformedFrames":0,"audioBytes":0,"minFrame":105,"maxFrame":105,"events":["CALL open()@1","OPEN@755","SEND speech.config@755","SEND ssml@755","FAIL@946","CALLED close@946*"],"openMs":755,"firstAudioMs":null,"turnEndMs":946,"finishMs":946}
+15:55:50.712 END mode=diag2 ms=27285 error={"type":"api","message":"收到 turn.end 但没有音频","addition":null}
+[2026-09-27 15:55:50.717 ● TranslateViewController ● 1647 ● ❌] playAudio(text:lang:) ● 获取音频失败 <Bob.ServiceError: 0x7483757500>
+15:55:50.721 diag2-edge #11 +955ms CLOSE (结束之后) args=3 readyState=3 code=typeof=number json=1000 string=1000 reason=typeof=string json="cancelled" string=cancelled

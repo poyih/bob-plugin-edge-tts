@@ -1,0 +1,125 @@
+[2026-09-27 15:53:06.137 ● TranslateViewController ● 326 ● I] playInputText() ● 播放输入框：text=诊断 poc-diag
+[2026-09-27 15:53:06.143 ● TranslateViewController ● 1636 ● I] playAudio(text:lang:) ● 调用 TTS 服务：tts=<Bob.PluginTTS: 0x74837043c0><type=300; name=Edge TTS PoC（仅验证）; identifier=3-300-1790479994-0387><plugin: identifer=com.poyih.bob.plugin.edge.tts.poc; version=0.0.1; homepage=https://github.com/poyih/bob-plugin-edge-tts>; text=诊断 poc-diag; lang=德语
+15:53:06.150 BEGIN mode=diag lang=de voice=zh-CN-XiaoxiaoNeural chars=11 queryKeys=lang,text bob=1.21.0(260) os=macOS 27.0.0 now=2026-09-27T05:53:06.149Z
+15:53:06.150 selftest ok (5 vectors)
+15:53:06.150 api $websocket= | constructor,new | toString,toLocaleString,valueOf,hasOwnProperty,propertyIsEnumerable,isPrototypeOf,__defineGetter__,__defineSetter__,__lookupGetter__,__lookupSetter__,__proto__,constructor
+15:53:06.150 api $data= | constructor,fromUTF8,fromHex,fromBase64,fromByteArray,fromData,isData | toString,toLocaleString,valueOf,hasOwnProperty,propertyIsEnumerable,isPrototypeOf,__defineGetter__,__defineSetter__,__lookupGetter__,__lookupSetter__,__proto__,constructor
+15:53:06.150 api $timer= | constructor,schedule,invalidate | toString,toLocaleString,valueOf,hasOwnProperty,propertyIsEnumerable,isPrototypeOf,__defineGetter__,__defineSetter__,__lookupGetter__,__lookupSetter__,__proto__,constructor
+15:53:06.150 diag step 1/7
+15:53:06.151 data10 names(instance)= | constructor,toUTF8,toHex,toBase64,toByteArray,readUInt8,writeUInt8,subData,appendData | toString,toLocaleString,valueOf,hasOwnProperty,propertyIsEnumerable,isPrototypeOf,__defineGetter__,__defineSetter__,__lookupGetter__,__lookupSetter__,__proto__,constructor
+15:53:06.151 data10 typeof length=undefined 'length' in=false typeof byteLength=undefined typeof count=undefined typeof size=undefined d[0]=undefined String(d)=[object Bob.JSData] JSON={}
+15:53:06.151 data10 toHex()=00010203040506070809 toHex(true)=00010203040506070809 toBase64()=AAECAwQFBgcICQ== toByteArray()=[0,1,2,3,4,5,6,7,8,9] isArray=true
+15:53:06.151 data10 readUInt8 (0)=0 (9)=9 (10)=0 (11)=0 (-1)=0 (1.5)=1 ("2")=0
+15:53:06.151 data10 subData(0,10)=非$data:undefined
+15:53:06.151 data10 subData(0,9)=9字节:000102030405060708
+15:53:06.151 data10 subData(2,10)=非$data:undefined
+15:53:06.151 data10 subData(2,9)=7字节:02030405060708
+15:53:06.151 data10 subData(9,10)=非$data:undefined
+15:53:06.151 data10 subData(8,9)=1字节:08
+15:53:06.151 data10 subData(0,1)=1字节:00
+15:53:06.151 data10 subData(5,5)=0字节:
+15:53:06.151 data10 subData(5,4)=非$data:undefined
+15:53:06.151 data10 subData(0,11)=非$data:undefined
+15:53:06.151 data10 subData(10,10)=非$data:undefined
+15:53:06.151 data10 subData(10,11)=非$data:undefined
+15:53:06.151 data10 subData(-1,3)=非$data:undefined
+15:53:06.151 data10 subData(3)=非$data:undefined subData()=非$data:undefined
+15:53:06.151 data10 fromData+appendData copy=12字节:00010203040506070809fffe original=10字节:00010203040506070809 appendData返回=非$data:undefined/undefined
+15:53:06.151 data10 writeUInt8(170,0) copy=12字节:aa010203040506070809fffe 返回=undefined
+15:53:06.151 data empty=0字节: toBase64="" toUTF8=""
+15:53:06.152 data fromUTF8(你好).toHex=e4bda0e5a5bd fromHex(FFF3).toUTF8=undefined fromBase64(AAEC).toHex=000102 isData(d)=true isData('x')=false isData({})=false
+15:53:08.107 data200k ms fromByteArray=21 toByteArray=8(200000) toHex=641(400000) toBase64=0(266668) subData=0(199869) 200次subData+appendData=1(199800)
+15:53:08.107 diag step 2/7
+15:53:08.107 http GET voices/list
+15:53:09.080 http ms=972 resp names=data,rawData,response | toString,toLocaleString,valueOf,hasOwnProperty,propertyIsEnumerable,isPrototypeOf,__defineGetter__,__defineSetter__,__lookupGetter__,__lookupSetter__,__proto__,constructor error=undefined
+15:53:09.080 http response statusCode=200 names=expectedContentLength,headers,textEncodingName,suggestedFilename,url,statusCode,MIMEType | toString,toLocaleString,valueOf,hasOwnProperty,propertyIsEnumerable,isPrototypeOf,__defineGetter__,__defineSetter__,__lookupGetter__,__lookupSetter__,__proto__,constructor
+15:53:09.080 http header keys=Date,Content-Length,accept-ch,x-envoy-upstream-service-time,x-msedge-ref,Strict-Transport-Security,x-cache,Content-Type
+15:53:09.080 http headers.Date="Sun, 27 Sep 2026 05:53:08 GMT" headers.date=undefined headers['DATE']=undefined
+15:53:09.080 http Date.parse=1790488388000 skewSeconds(server-local)=-1
+15:53:09.080 http data typeof=object isArray=true voices=322 rawData= | constructor,toUTF8,toHex,toBase64,toByteArray,readUInt8,writeUInt8,subData,appendData | toString,toLocaleString,valueOf,hasOwnProperty,propertyIsEnumerable,isPrototypeOf,__defineGetter__,__defineSetter__,__lookupGetter__,__lookupSetter__,__proto__,constructor
+15:53:09.081 http voices found=zh-CN-XiaoxiaoNeural,en-US-AriaNeural
+15:53:09.081 diag step 3/7
+15:53:09.082 diag-skew900 connect url=wss://speech.platform.bing.com/consumer/speech/synthesize/readaloud/edge/v1?TrustedClientToken=6A5AA1D4EAFF4E9FB37E23D68491D6F4&ConnectionId=<32hex>&Sec-MS-GEC=79CC4A6201BD055516CE640886DB81978596C7D93ACDDCF9FE1D874E499F766D&Sec-MS-GEC-Version=1-143.0.3650.75
+15:53:09.082 diag-skew900 connect params={"allowSelfSignedSSLCertificates":false,"timeoutInterval":30,"header":{"User-Agent":"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0","Origin":"chrome-extension://jdiccldimpdaibmpdkjnbmckianbfold","Cookie":"muid=548590171B3F05ACF5DF724BACB84588;","Pragma":"no-cache","Cache-Control":"no-cache","Accept-Language":"en-US,en;q=0.9"}}
+15:53:09.083 diag-skew900 api socket= | constructor,open,close,sendString,sendData,ping,pong,listenOpen,listenClose,listenError,listenReceiveString,listenReceiveData,listenReceivePing,listenReceivePong,readyState | toString,toLocaleString,valueOf,hasOwnProperty,propertyIsEnumerable,isPrototypeOf,__defineGetter__,__defineSetter__,__lookupGetter__,__lookupSetter__,__proto__,constructor
+15:53:09.083 diag-skew900 timer id typeof=number value=1
+15:53:09.085 diag-skew900 #1 +3ms CALL open() readyState=3 ret=undefined
+15:53:09.746 diag-skew900 #2 +664ms ERROR args=2 readyState=3 code=0 type=unknownError message=notAnUpgrade(403) typeof=object json={"message":"notAnUpgrade(403)","code":0,"type":"unknownError"} string=[object Object] names=message,code,type | toString,toLocaleString,valueOf,hasOwnProperty,propertyIsEnumerable,isPrototypeOf,__defineGetter__,__defineSetter__,__lookupGetter__,__lookupSetter__,__proto__,constructor
+15:53:09.746 diag-skew900 #3 +664ms FAIL type=api message=WebSocket 握手或传输出错，详见日志
+15:53:11.248 diag-skew900 #4 +2166ms SETTLED (结束之后) readyState=3
+15:53:11.248 diag-skew900 #5 +2167ms CALLED close (结束之后) form=empty ret=undefined readyState=3
+15:53:12.250 diag-skew900 SUMMARY {"label":"diag-skew900","textFrames":0,"binaryFrames":0,"audioFrames":0,"emptyAudioFrames":0,"malformedFrames":0,"audioBytes":0,"minFrame":null,"maxFrame":null,"events":["CALL open()@3","ERROR@664","FAIL@664","SETTLED@2166*","CALLED close@2167*"],"openMs":null,"firstAudioMs":null,"turnEndMs":null,"finishMs":665}
+15:53:12.250 diag step 4/7
+15:53:12.250 diag-noheader connect url=wss://speech.platform.bing.com/consumer/speech/synthesize/readaloud/edge/v1?TrustedClientToken=6A5AA1D4EAFF4E9FB37E23D68491D6F4&ConnectionId=<32hex>&Sec-MS-GEC=412C689F0E6B3F55658F2937D63105487F98C068CD85C7B68C8B8F6A3E230EEA&Sec-MS-GEC-Version=1-143.0.3650.75
+15:53:12.250 diag-noheader connect params={"allowSelfSignedSSLCertificates":false,"timeoutInterval":30}
+15:53:12.251 diag-noheader api socket= | constructor,open,close,sendString,sendData,ping,pong,listenOpen,listenClose,listenError,listenReceiveString,listenReceiveData,listenReceivePing,listenReceivePong,readyState | toString,toLocaleString,valueOf,hasOwnProperty,propertyIsEnumerable,isPrototypeOf,__defineGetter__,__defineSetter__,__lookupGetter__,__lookupSetter__,__proto__,constructor
+15:53:12.251 diag-noheader timer id typeof=number value=4
+15:53:12.251 diag-noheader #1 +1ms CALL open() readyState=3 ret=undefined
+15:53:13.033 diag-noheader #2 +783ms ERROR args=2 readyState=3 code=0 type=unknownError message=notAnUpgrade(403) typeof=object json={"type":"unknownError","code":0,"message":"notAnUpgrade(403)"} string=[object Object] names=type,code,message | toString,toLocaleString,valueOf,hasOwnProperty,propertyIsEnumerable,isPrototypeOf,__defineGetter__,__defineSetter__,__lookupGetter__,__lookupSetter__,__proto__,constructor
+15:53:13.033 diag-noheader #3 +783ms FAIL type=api message=WebSocket 握手或传输出错，详见日志
+15:53:14.535 diag-noheader #4 +2284ms SETTLED (结束之后) readyState=3
+15:53:14.535 diag-noheader #5 +2284ms CALLED close (结束之后) form=empty ret=undefined readyState=3
+15:53:15.536 diag-noheader SUMMARY {"label":"diag-noheader","textFrames":0,"binaryFrames":0,"audioFrames":0,"emptyAudioFrames":0,"malformedFrames":0,"audioBytes":0,"minFrame":null,"maxFrame":null,"events":["CALL open()@1","ERROR@783","FAIL@783","SETTLED@2284*","CALLED close@2284*"],"openMs":null,"firstAudioMs":null,"turnEndMs":null,"finishMs":783}
+15:53:15.536 diag step 5/7
+15:53:15.537 diag-refused connect url=ws://127.0.0.1:1/refused
+15:53:15.537 diag-refused connect params={"allowSelfSignedSSLCertificates":false,"timeoutInterval":3,"header":{"User-Agent":"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0","Origin":"chrome-extension://jdiccldimpdaibmpdkjnbmckianbfold","Cookie":"muid=32F1694FC092790BD72697B87D02D4B0;","Pragma":"no-cache","Cache-Control":"no-cache","Accept-Language":"en-US,en;q=0.9"}}
+15:53:15.537 diag-refused api socket= | constructor,open,close,sendString,sendData,ping,pong,listenOpen,listenClose,listenError,listenReceiveString,listenReceiveData,listenReceivePing,listenReceivePong,readyState | toString,toLocaleString,valueOf,hasOwnProperty,propertyIsEnumerable,isPrototypeOf,__defineGetter__,__defineSetter__,__lookupGetter__,__lookupSetter__,__proto__,constructor
+15:53:15.538 diag-refused timer id typeof=number value=7
+15:53:15.538 diag-refused #1 +2ms CALL open() readyState=3 ret=undefined
+15:53:23.539 diag-refused #2 +8002ms TIMER 插件自己的定时器到点 readyState=0
+15:53:23.539 diag-refused #3 +8002ms FAIL type=network message=8 秒内没有收到 turn.end
+15:53:25.040 diag-refused #4 +9503ms SETTLED (结束之后) readyState=0
+15:53:25.040 diag-refused #5 +9504ms CALLED close (结束之后) form=empty ret=undefined readyState=2
+15:53:26.041 diag-refused SUMMARY {"label":"diag-refused","textFrames":0,"binaryFrames":0,"audioFrames":0,"emptyAudioFrames":0,"malformedFrames":0,"audioBytes":0,"minFrame":null,"maxFrame":null,"events":["CALL open()@2","TIMER@8002","FAIL@8002","SETTLED@9503*","CALLED close@9504*"],"openMs":null,"firstAudioMs":null,"turnEndMs":null,"finishMs":8002}
+15:53:26.042 diag step 6/7
+15:53:26.042 diag-nxdomain connect url=wss://edge-tts-poc.invalid/nxdomain
+15:53:26.042 diag-nxdomain connect params={"allowSelfSignedSSLCertificates":false,"timeoutInterval":3,"header":{"User-Agent":"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0","Origin":"chrome-extension://jdiccldimpdaibmpdkjnbmckianbfold","Cookie":"muid=7FD15D8CFC7BE1B59C8532FC2D701090;","Pragma":"no-cache","Cache-Control":"no-cache","Accept-Language":"en-US,en;q=0.9"}}
+15:53:26.042 diag-nxdomain api socket= | constructor,open,close,sendString,sendData,ping,pong,listenOpen,listenClose,listenError,listenReceiveString,listenReceiveData,listenReceivePing,listenReceivePong,readyState | toString,toLocaleString,valueOf,hasOwnProperty,propertyIsEnumerable,isPrototypeOf,__defineGetter__,__defineSetter__,__lookupGetter__,__lookupSetter__,__proto__,constructor
+15:53:26.043 diag-nxdomain timer id typeof=number value=10
+15:53:26.043 diag-nxdomain #1 +1ms CALL open() readyState=3 ret=undefined
+15:53:34.044 diag-nxdomain #2 +8002ms TIMER 插件自己的定时器到点 readyState=0
+15:53:34.044 diag-nxdomain #3 +8002ms FAIL type=network message=8 秒内没有收到 turn.end
+15:53:35.545 diag-nxdomain #4 +9504ms SETTLED (结束之后) readyState=0
+15:53:35.545 diag-nxdomain #5 +9504ms CALLED close (结束之后) form=empty ret=undefined readyState=2
+15:53:36.547 diag-nxdomain SUMMARY {"label":"diag-nxdomain","textFrames":0,"binaryFrames":0,"audioFrames":0,"emptyAudioFrames":0,"malformedFrames":0,"audioBytes":0,"minFrame":null,"maxFrame":null,"events":["CALL open()@1","TIMER@8002","FAIL@8002","SETTLED@9504*","CALLED close@9504*"],"openMs":null,"firstAudioMs":null,"turnEndMs":null,"finishMs":8002}
+15:53:36.547 diag step 7/7
+15:53:36.547 diag-edge connect url=wss://speech.platform.bing.com/consumer/speech/synthesize/readaloud/edge/v1?TrustedClientToken=6A5AA1D4EAFF4E9FB37E23D68491D6F4&ConnectionId=<32hex>&Sec-MS-GEC=412C689F0E6B3F55658F2937D63105487F98C068CD85C7B68C8B8F6A3E230EEA&Sec-MS-GEC-Version=1-143.0.3650.75
+15:53:36.547 diag-edge connect params={"allowSelfSignedSSLCertificates":false,"timeoutInterval":30,"header":{"User-Agent":"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0","Origin":"chrome-extension://jdiccldimpdaibmpdkjnbmckianbfold","Cookie":"muid=E885EBBAC3543B574727C954BC495F1C;","Pragma":"no-cache","Cache-Control":"no-cache","Accept-Language":"en-US,en;q=0.9"}}
+15:53:36.548 diag-edge api socket= | constructor,open,close,sendString,sendData,ping,pong,listenOpen,listenClose,listenError,listenReceiveString,listenReceiveData,listenReceivePing,listenReceivePong,readyState | toString,toLocaleString,valueOf,hasOwnProperty,propertyIsEnumerable,isPrototypeOf,__defineGetter__,__defineSetter__,__lookupGetter__,__lookupSetter__,__proto__,constructor
+15:53:36.548 diag-edge timer id typeof=number value=13
+15:53:36.548 diag-edge #1 +1ms CALL open() readyState=3 ret=undefined
+15:53:37.166 diag-edge #2 +619ms OPEN args=1 readyState=1 sameSocket=true
+15:53:37.167 diag-edge #3 +619ms SEND speech.config chars=315 ret=undefined
+15:53:37.167 diag-edge #4 +619ms SEND ssml chars=364 ret=undefined
+15:53:37.350 diag-edge #5 +802ms TEXT n=1 args=2 typeof=string chars=186 path=turn.start head200="X-RequestId:633baa5c13cb967e12f9bc6f3ecc2339\r\nContent-Type:application/json; charset=utf-8\r\nPath:turn.start\r\n\r\n{\n  \"context\": {\n    \"serviceTag\": \"950fc7ff35474a8f991f95141e9d049e\"\n  }\n}"
+15:53:37.350 diag-edge #6 +802ms TEXT n=2 args=2 typeof=string chars=242 path=response head200="X-RequestId:633baa5c13cb967e12f9bc6f3ecc2339\r\nContent-Type:application/json; charset=utf-8\r\nPath:response\r\n\r\n{\"context\":{\"serviceTag\":\"950fc7ff35474a8f991f95141e9d049e\"},\"audio\":{\"type\":\"inline\",\"stre"
+15:53:37.397 diag-edge #7 +850ms TEXT n=3 args=2 typeof=string chars=376 path=audio.metadata head200="X-RequestId:633baa5c13cb967e12f9bc6f3ecc2339\r\nContent-Type:application/json; charset=utf-8\r\nPath:audio.metadata\r\n\r\n{\n  \"Metadata\": [\n    {\n      \"Type\": \"WordBoundary\",\n      \"Data\": {\n        \"Offset"
+15:53:37.398 diag-edge #8 +850ms TEXT n=4 args=2 typeof=string chars=376 path=audio.metadata head200="X-RequestId:633baa5c13cb967e12f9bc6f3ecc2339\r\nContent-Type:application/json; charset=utf-8\r\nPath:audio.metadata\r\n\r\n{\n  \"Metadata\": [\n    {\n      \"Type\": \"WordBoundary\",\n      \"Data\": {\n        \"Offset"
+15:53:37.406 diag-edge api data= | constructor,toUTF8,toHex,toBase64,toByteArray,readUInt8,writeUInt8,subData,appendData | toString,toLocaleString,valueOf,hasOwnProperty,propertyIsEnumerable,isPrototypeOf,__defineGetter__,__defineSetter__,__lookupGetter__,__lookupSetter__,__proto__,constructor
+15:53:37.410 diag-edge #9 +862ms DATA n=1 args=2 length=850 N=128 audioBytes=720 wellFormed=true info={"typeofData":"object","isData":true,"typeofLength":"undefined","lengthInData":false,"typeofToByteArray":"function","typeofReadUInt8":"function","typeofToHex":"function","typeofSubData":"function","typeofToUTF8":"function","typeofToBase64":"function","typeofAppendData":"function","byteArrayIsArray":true,"lengthProp":null,"lengthByteArray":850,"lengthHex":850,"length":850,"nReadUInt8":128,"nByteArray":128,"nHex":128,"n":128,"wellFormed":true,"headerAgree":true,"startsWithRequestId":true,"subDataTail":"非$data:undefined","audioVia":"fromByteArray"} header="X-RequestId:633baa5c13cb967e12f9bc6f3ecc2339\r\nContent-Type:audio/mpeg\r\nX-StreamId:546D9FF1F0B14C62A7273E94CB830426\r\nPath:audio\r\n"
+15:53:37.414 diag-edge #10 +866ms DATA n=2 args=2 length=850 N=128 audioBytes=720 wellFormed=true info={"typeofData":"object","isData":true,"typeofLength":"undefined","lengthInData":false,"typeofToByteArray":"function","typeofReadUInt8":"function","typeofToHex":"function","typeofSubData":"function","typeofToUTF8":"function","typeofToBase64":"function","typeofAppendData":"function","byteArrayIsArray":true,"lengthProp":null,"lengthByteArray":850,"lengthHex":850,"length":850,"nReadUInt8":128,"nByteArray":128,"nHex":128,"n":128,"wellFormed":true,"headerAgree":true,"startsWithRequestId":true,"subDataTail":"非$data:undefined","audioVia":"fromByteArray"} header="X-RequestId:633baa5c13cb967e12f9bc6f3ecc2339\r\nContent-Type:audio/mpeg\r\nX-StreamId:546D9FF1F0B14C62A7273E94CB830426\r\nPath:audio\r\n"
+15:53:37.416 diag-edge #11 +868ms DATA n=3 args=2 length=850 N=128 audioBytes=720 wellFormed=true info={"typeofData":"object","isData":true,"typeofLength":"undefined","lengthInData":false,"typeofToByteArray":"function","typeofReadUInt8":"function","typeofToHex":"function","typeofSubData":"function","typeofToUTF8":"function","typeofToBase64":"function","typeofAppendData":"function","byteArrayIsArray":true,"lengthProp":null,"lengthByteArray":850,"lengthHex":850,"length":850,"nReadUInt8":128,"nByteArray":128,"nHex":128,"n":128,"wellFormed":true,"headerAgree":true,"startsWithRequestId":true,"subDataTail":"非$data:undefined","audioVia":"fromByteArray"} header="X-RequestId:633baa5c13cb967e12f9bc6f3ecc2339\r\nContent-Type:audio/mpeg\r\nX-StreamId:546D9FF1F0B14C62A7273E94CB830426\r\nPath:audio\r\n"
+15:53:37.419 diag-edge #12 +871ms DATA n=4 args=2 length=850 N=128 audioBytes=720 wellFormed=true
+15:53:37.421 diag-edge #13 +874ms DATA n=5 args=2 length=850 N=128 audioBytes=720 wellFormed=true
+15:53:37.424 diag-edge #14 +876ms DATA n=6 args=2 length=850 N=128 audioBytes=720 wellFormed=true
+15:53:37.456 diag-edge #15 +909ms DATA n=7 args=2 length=850 N=128 audioBytes=720 wellFormed=true
+15:53:37.460 diag-edge #16 +912ms DATA n=8 args=2 length=850 N=128 audioBytes=720 wellFormed=true
+15:53:37.463 diag-edge #17 +916ms DATA n=9 args=2 length=850 N=128 audioBytes=720 wellFormed=true
+15:53:37.466 diag-edge #18 +918ms DATA n=10 args=2 length=850 N=128 audioBytes=720 wellFormed=true
+15:53:37.499 diag-edge #19 +952ms DATA n=11 args=2 length=850 N=128 audioBytes=720 wellFormed=true
+15:53:37.502 diag-edge #20 +955ms DATA n=12 args=2 length=850 N=128 audioBytes=720 wellFormed=true
+15:53:37.506 diag-edge #21 +958ms DATA n=13 args=2 length=850 N=128 audioBytes=720 wellFormed=true
+15:53:37.508 diag-edge #22 +961ms DATA n=14 args=2 length=850 N=128 audioBytes=720 wellFormed=true
+15:53:37.510 diag-edge #23 +963ms DATA n=15 args=2 length=850 N=128 audioBytes=720 wellFormed=true
+15:53:37.512 diag-edge #24 +964ms DATA n=16 args=2 length=562 N=128 audioBytes=432 wellFormed=true
+15:53:37.512 diag-edge #25 +965ms DATA n=17 args=2 length=105 N=103 audioBytes=0 wellFormed=true info={"typeofData":"object","isData":true,"typeofLength":"undefined","lengthInData":false,"typeofToByteArray":"function","typeofReadUInt8":"function","typeofToHex":"function","typeofSubData":"function","typeofToUTF8":"function","typeofToBase64":"function","typeofAppendData":"function","byteArrayIsArray":true,"lengthProp":null,"lengthByteArray":105,"lengthHex":105,"length":105,"nReadUInt8":103,"nByteArray":103,"nHex":103,"n":103,"wellFormed":true,"headerAgree":false,"startsWithRequestId":true} header="X-RequestId:633baa5c13cb967e12f9bc6f3ecc2339\r\nX-StreamId:546D9FF1F0B14C62A7273E94CB830426\r\nPath:audio\r\n"
+15:53:37.513 diag-edge #26 +965ms TEXT n=5 args=2 typeof=string chars=111 path=turn.end head200="X-RequestId:633baa5c13cb967e12f9bc6f3ecc2339\r\nContent-Type:application/json; charset=utf-8\r\nPath:turn.end\r\n\r\n{}"
+15:53:39.027 diag-edge #27 +2479ms SETTLED (结束之后) readyState=1
+15:53:39.027 diag-edge #28 +2480ms CALLED close (结束之后) form=empty ret=undefined readyState=2
+15:53:39.029 diag-edge #29 +2481ms CLOSE (结束之后) args=3 readyState=3 code=typeof=number json=1000 string=1000 reason=typeof=string json="cancelled" string=cancelled
+15:53:40.029 diag-edge SUMMARY {"label":"diag-edge","textFrames":5,"binaryFrames":17,"audioFrames":16,"emptyAudioFrames":1,"malformedFrames":0,"audioBytes":11232,"minFrame":105,"maxFrame":850,"events":["CALL open()@1","OPEN@619","SEND speech.config@619","SEND ssml@619","SETTLED@2479*","CALLED close@2480*","CLOSE@2481*"],"openMs":619,"firstAudioMs":862,"turnEndMs":965,"audioBytesFromData":11232,"audioSha256":"edfb0e45b1d2620e3c2130cec71199b17ed5f02983907363c2070aac46bb0c1f","finishMs":978}
+15:53:40.029 END mode=diag ms=33880 audioBytes=11232 base64Chars=14976
+[2026-09-27 15:53:40.032 ● TranslateViewController ● 1655 ● I] playTTS(tts:) ● 播放音频:Bob.TTSResult
+[2026-09-27 15:53:40.035 ● AudioPlayer ● 221 ● I] play(info:) ● 播放音频文件：/Users/poyih/Library/Containers/com.hezongyidev.Bob/Data/Library/Caches/AudioCaches/305b4d82ddf4b925b84bf87c5760a191.mp3
+[2026-09-27 15:53:42.104 ● AudioPlayer ● 265 ● I] audioPlayerDidFinishPlaying(_:successfully:) ● 播放完成: true
+[2026-09-27 15:53:42.104 ● TranslateViewController ● 1662 ● I] playTTS(tts:) ● 播放 tts 回调: tts=Bob.TTSResult; state=playSuccess

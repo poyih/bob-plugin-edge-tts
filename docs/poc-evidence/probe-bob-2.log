@@ -1,0 +1,77 @@
+15:52:21 probe listening on ws://127.0.0.1:18765/ audio=78000 bytes
+15:55:23 ---- connection from 127.0.0.1:59789, request head 696 bytes
+15:55:23 RAW b'GET /reject403?TrustedClientToken=6A5AA1D4EAFF4E9FB37E23D68491D6F4&ConnectionId=b7820f1cbf97adb531ce3e206ab29994&Sec-MS-GEC=D1C1628CC796A083284EA3F429A881A8AB2AF7001FFDABBC686D5A825768F0D8&Sec-MS-GEC-Version=1-143.0.3650.75 HTTP/1.1\r\nHost: 127.0.0.1:18765\r\nPragma: no-cache\r\nOrigin: chrome-extension://jdiccldimpdaibmpdkjnbmckianbfold\r\nSec-WebSocket-Key: d2F6dGRwdGx5bnZ5Y3V2aw==\r\nUpgrade: websocket\r\nCookie: muid=0A56A463DA73CE67A662A63B0017826D;\r\nSec-WebSocket-Version: 13\r\nUser-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0\r\nAccept-Language: en-US,en;q=0.9\r\nCache-Control: no-cache\r\nConnection: Upgrade\r\n\r\n'
+15:55:23 HANDSHAKE | GET /reject403?TrustedClientToken=6A5AA1D4EAFF4E9FB37E23D68491D6F4&ConnectionId=b7820f1cbf97adb531ce3e206ab29994&Sec-MS-GEC=D1C1628CC796A083284EA3F429A881A8AB2AF7001FFDABBC686D5A825768F0D8&Sec-MS-GEC-Version=1-143.0.3650.75 HTTP/1.1
+15:55:23 HANDSHAKE | Host: 127.0.0.1:18765
+15:55:23 HANDSHAKE | Pragma: no-cache
+15:55:23 HANDSHAKE | Origin: chrome-extension://jdiccldimpdaibmpdkjnbmckianbfold
+15:55:23 HANDSHAKE | Sec-WebSocket-Key: d2F6dGRwdGx5bnZ5Y3V2aw==
+15:55:23 HANDSHAKE | Upgrade: websocket
+15:55:23 HANDSHAKE | Cookie: muid=0A56A463DA73CE67A662A63B0017826D;
+15:55:23 HANDSHAKE | Sec-WebSocket-Version: 13
+15:55:23 HANDSHAKE | User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0
+15:55:23 HANDSHAKE | Accept-Language: en-US,en;q=0.9
+15:55:23 HANDSHAKE | Cache-Control: no-cache
+15:55:23 HANDSHAKE | Connection: Upgrade
+15:55:23 scenario reject403: replied 403, closing TCP
+15:55:25 ---- connection from 127.0.0.1:59790, request head 698 bytes
+15:55:25 RAW b'GET /close-frame?TrustedClientToken=6A5AA1D4EAFF4E9FB37E23D68491D6F4&ConnectionId=55c42868123e87442cdd1a8f063a6357&Sec-MS-GEC=D1C1628CC796A083284EA3F429A881A8AB2AF7001FFDABBC686D5A825768F0D8&Sec-MS-GEC-Version=1-143.0.3650.75 HTTP/1.1\r\nHost: 127.0.0.1:18765\r\nPragma: no-cache\r\nOrigin: chrome-extension://jdiccldimpdaibmpdkjnbmckianbfold\r\nSec-WebSocket-Key: Y2FydnRmZXV2cGpnbHVkbQ==\r\nUpgrade: websocket\r\nCookie: muid=B9C9551B29AFB63A691C7E7157EC281F;\r\nSec-WebSocket-Version: 13\r\nUser-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0\r\nAccept-Language: en-US,en;q=0.9\r\nCache-Control: no-cache\r\nConnection: Upgrade\r\n\r\n'
+15:55:25 HANDSHAKE | GET /close-frame?TrustedClientToken=6A5AA1D4EAFF4E9FB37E23D68491D6F4&ConnectionId=55c42868123e87442cdd1a8f063a6357&Sec-MS-GEC=D1C1628CC796A083284EA3F429A881A8AB2AF7001FFDABBC686D5A825768F0D8&Sec-MS-GEC-Version=1-143.0.3650.75 HTTP/1.1
+15:55:25 HANDSHAKE | Host: 127.0.0.1:18765
+15:55:25 HANDSHAKE | Pragma: no-cache
+15:55:25 HANDSHAKE | Origin: chrome-extension://jdiccldimpdaibmpdkjnbmckianbfold
+15:55:25 HANDSHAKE | Sec-WebSocket-Key: Y2FydnRmZXV2cGpnbHVkbQ==
+15:55:25 HANDSHAKE | Upgrade: websocket
+15:55:25 HANDSHAKE | Cookie: muid=B9C9551B29AFB63A691C7E7157EC281F;
+15:55:25 HANDSHAKE | Sec-WebSocket-Version: 13
+15:55:25 HANDSHAKE | User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0
+15:55:25 HANDSHAKE | Accept-Language: en-US,en;q=0.9
+15:55:25 HANDSHAKE | Cache-Control: no-cache
+15:55:25 HANDSHAKE | Connection: Upgrade
+15:55:25 handshake done, waiting for 2 client messages
+15:55:25 client message #1 opcode=text fin=True masked=True bytes=315 sha256=937d655550b01baec1f1a8c31e1a4ed559dcd3e68b1fe18d417b7f4f4e75fb3b
+15:55:25 CLIENT b'X-Timestamp:Sun Sep 27 2026 05:55:25 GMT+0000 (Coordinated Universal Time)\r\nContent-Type:application/json; charset=utf-8\r\nPath:speech.config\r\n\r\n{"context":{"synthesis":{"audio":{"metadataoptions":{"sentenceBoundaryEnabled":"false","wordBoundaryEnabled":"true"},"outputFormat":"audio-24khz-48kbitrate-mono-mp3"}}}}\r\n'
+15:55:25 client message #2 opcode=text fin=True masked=True bytes=368 sha256=7498078ed628dea33b40492b78e68c814d7cb114870af38f9ee9d9b0d10036ee
+15:55:25 CLIENT b"X-RequestId:53e67c803b7e3df4add972ed194431b6\r\nContent-Type:application/ssml+xml\r\nX-Timestamp:Sun Sep 27 2026 05:55:25 GMT+0000 (Coordinated Universal Time)Z\r\nPath:ssml\r\n\r\n<speak version='1.0' xmlns='http://www.w3.org/2001/10/synthesis' xml:lang='en-US'><voice name='en-US-AriaNeural'><prosody pitch='+0Hz' rate='+0%' volume='+0%'>\xe8\xaf\x8a\xe6\x96\xad\xe5\xae\x8c\xe6\x88\x90</prosody></voice></speak>"
+15:55:26 scenario close-frame: sent Close 1011 'server going away'
+15:55:28 ---- connection from 127.0.0.1:59791, request head 691 bytes
+15:55:28 RAW b'GET /drop?TrustedClientToken=6A5AA1D4EAFF4E9FB37E23D68491D6F4&ConnectionId=f6a0dd8fbeb5c092df6886610bf12dfb&Sec-MS-GEC=D1C1628CC796A083284EA3F429A881A8AB2AF7001FFDABBC686D5A825768F0D8&Sec-MS-GEC-Version=1-143.0.3650.75 HTTP/1.1\r\nHost: 127.0.0.1:18765\r\nPragma: no-cache\r\nOrigin: chrome-extension://jdiccldimpdaibmpdkjnbmckianbfold\r\nSec-WebSocket-Key: ZWJpeGducHlka3N2dHF2Yg==\r\nUpgrade: websocket\r\nCookie: muid=975A0D630B6C597FB4F587950F404D31;\r\nSec-WebSocket-Version: 13\r\nUser-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0\r\nAccept-Language: en-US,en;q=0.9\r\nCache-Control: no-cache\r\nConnection: Upgrade\r\n\r\n'
+15:55:28 HANDSHAKE | GET /drop?TrustedClientToken=6A5AA1D4EAFF4E9FB37E23D68491D6F4&ConnectionId=f6a0dd8fbeb5c092df6886610bf12dfb&Sec-MS-GEC=D1C1628CC796A083284EA3F429A881A8AB2AF7001FFDABBC686D5A825768F0D8&Sec-MS-GEC-Version=1-143.0.3650.75 HTTP/1.1
+15:55:28 HANDSHAKE | Host: 127.0.0.1:18765
+15:55:28 HANDSHAKE | Pragma: no-cache
+15:55:28 HANDSHAKE | Origin: chrome-extension://jdiccldimpdaibmpdkjnbmckianbfold
+15:55:28 HANDSHAKE | Sec-WebSocket-Key: ZWJpeGducHlka3N2dHF2Yg==
+15:55:28 HANDSHAKE | Upgrade: websocket
+15:55:28 HANDSHAKE | Cookie: muid=975A0D630B6C597FB4F587950F404D31;
+15:55:28 HANDSHAKE | Sec-WebSocket-Version: 13
+15:55:28 HANDSHAKE | User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0
+15:55:28 HANDSHAKE | Accept-Language: en-US,en;q=0.9
+15:55:28 HANDSHAKE | Cache-Control: no-cache
+15:55:28 HANDSHAKE | Connection: Upgrade
+15:55:28 handshake done, waiting for 2 client messages
+15:55:28 client message #1 opcode=text fin=True masked=True bytes=315 sha256=7009cbf69eb36ba5b407fa47da9dff7c659df0fa24ee1a0632dc7567aa68da2b
+15:55:28 CLIENT b'X-Timestamp:Sun Sep 27 2026 05:55:28 GMT+0000 (Coordinated Universal Time)\r\nContent-Type:application/json; charset=utf-8\r\nPath:speech.config\r\n\r\n{"context":{"synthesis":{"audio":{"metadataoptions":{"sentenceBoundaryEnabled":"false","wordBoundaryEnabled":"true"},"outputFormat":"audio-24khz-48kbitrate-mono-mp3"}}}}\r\n'
+15:55:28 client message #2 opcode=text fin=True masked=True bytes=368 sha256=1fcda792e1bffe8cb1283abd35b475a5099f070b91345a35837c69736f6a1bcb
+15:55:28 CLIENT b"X-RequestId:0181be20ffded9bbf14c508f72f12901\r\nContent-Type:application/ssml+xml\r\nX-Timestamp:Sun Sep 27 2026 05:55:28 GMT+0000 (Coordinated Universal Time)Z\r\nPath:ssml\r\n\r\n<speak version='1.0' xmlns='http://www.w3.org/2001/10/synthesis' xml:lang='en-US'><voice name='en-US-AriaNeural'><prosody pitch='+0Hz' rate='+0%' volume='+0%'>\xe8\xaf\x8a\xe6\x96\xad\xe5\xae\x8c\xe6\x88\x90</prosody></voice></speak>"
+15:55:29 scenario drop: closing TCP without a Close frame
+15:55:39 ---- connection from 127.0.0.1:59796, request head 691 bytes
+15:55:39 RAW b'GET /hang?TrustedClientToken=6A5AA1D4EAFF4E9FB37E23D68491D6F4&ConnectionId=9eb4196d05e52d9a3c9655568f813c1c&Sec-MS-GEC=D1C1628CC796A083284EA3F429A881A8AB2AF7001FFDABBC686D5A825768F0D8&Sec-MS-GEC-Version=1-143.0.3650.75 HTTP/1.1\r\nHost: 127.0.0.1:18765\r\nPragma: no-cache\r\nOrigin: chrome-extension://jdiccldimpdaibmpdkjnbmckianbfold\r\nSec-WebSocket-Key: d3V2bXBqanhxbGhheGFzYg==\r\nUpgrade: websocket\r\nCookie: muid=DF51903C80081D802F66E34442D6C3CA;\r\nSec-WebSocket-Version: 13\r\nUser-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0\r\nAccept-Language: en-US,en;q=0.9\r\nCache-Control: no-cache\r\nConnection: Upgrade\r\n\r\n'
+15:55:39 HANDSHAKE | GET /hang?TrustedClientToken=6A5AA1D4EAFF4E9FB37E23D68491D6F4&ConnectionId=9eb4196d05e52d9a3c9655568f813c1c&Sec-MS-GEC=D1C1628CC796A083284EA3F429A881A8AB2AF7001FFDABBC686D5A825768F0D8&Sec-MS-GEC-Version=1-143.0.3650.75 HTTP/1.1
+15:55:39 HANDSHAKE | Host: 127.0.0.1:18765
+15:55:39 HANDSHAKE | Pragma: no-cache
+15:55:39 HANDSHAKE | Origin: chrome-extension://jdiccldimpdaibmpdkjnbmckianbfold
+15:55:39 HANDSHAKE | Sec-WebSocket-Key: d3V2bXBqanhxbGhheGFzYg==
+15:55:39 HANDSHAKE | Upgrade: websocket
+15:55:39 HANDSHAKE | Cookie: muid=DF51903C80081D802F66E34442D6C3CA;
+15:55:39 HANDSHAKE | Sec-WebSocket-Version: 13
+15:55:39 HANDSHAKE | User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0
+15:55:39 HANDSHAKE | Accept-Language: en-US,en;q=0.9
+15:55:39 HANDSHAKE | Cache-Control: no-cache
+15:55:39 HANDSHAKE | Connection: Upgrade
+15:55:39 handshake done, waiting for 2 client messages
+15:55:39 client message #1 opcode=text fin=True masked=True bytes=315 sha256=85ef8ae370e773ca2fadd57f9f572001553379933d4b91d75d93fddfd0c474d1
+15:55:39 CLIENT b'X-Timestamp:Sun Sep 27 2026 05:55:39 GMT+0000 (Coordinated Universal Time)\r\nContent-Type:application/json; charset=utf-8\r\nPath:speech.config\r\n\r\n{"context":{"synthesis":{"audio":{"metadataoptions":{"sentenceBoundaryEnabled":"false","wordBoundaryEnabled":"true"},"outputFormat":"audio-24khz-48kbitrate-mono-mp3"}}}}\r\n'
+15:55:39 client message #2 opcode=text fin=True masked=True bytes=368 sha256=6e4f40cd3e53319aca05106b56fd0df9fda30ba8faa4ac946d7b78a5b897b463
+15:55:39 CLIENT b"X-RequestId:1e4fab102191b647df8f1877738d6f0b\r\nContent-Type:application/ssml+xml\r\nX-Timestamp:Sun Sep 27 2026 05:55:39 GMT+0000 (Coordinated Universal Time)Z\r\nPath:ssml\r\n\r\n<speak version='1.0' xmlns='http://www.w3.org/2001/10/synthesis' xml:lang='en-US'><voice name='en-US-AriaNeural'><prosody pitch='+0Hz' rate='+0%' volume='+0%'>\xe8\xaf\x8a\xe6\x96\xad\xe5\xae\x8c\xe6\x88\x90</prosody></voice></speak>"
+15:55:39 scenario hang: handshake done, staying silent
+15:55:48 client CLOSE code=1000 reason=b''
