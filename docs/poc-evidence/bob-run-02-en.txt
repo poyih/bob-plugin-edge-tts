@@ -1,0 +1,95 @@
+[2026-09-27 13:43:21.043 ● TranslateViewController ● 326 ● I] playInputText() ● 播放输入框：text=Hello, world. This is a live test of Edge text to speech inside Bob.
+[2026-09-27 13:43:21.047 ● TranslateViewController ● 1636 ● I] playAudio(text:lang:) ● 调用 TTS 服务：tts=<Bob.PluginTTS: 0x7483b73f20><type=300; name=Edge TTS PoC（仅验证）; identifier=3-300-1790479994-0387><plugin: identifer=com.poyih.bob.plugin.edge.tts.poc; version=0.0.1; homepage=https://github.com/poyih/bob-plugin-edge-tts>; text=Hello, world. This is a live test of Edge text to speech inside Bob.; lang=英语
+13:43:21.047 BEGIN mode=edge lang=en voice=en-US-AriaNeural chars=68 queryKeys=lang,text bob=1.21.0(260) os=macOS 27.0.0 now=2026-09-27T03:43:21.047Z
+13:43:21.048 selftest ok (5 vectors)
+13:43:21.048 api $websocket= | constructor,new | toString,toLocaleString,valueOf,hasOwnProperty,propertyIsEnumerable,isPrototypeOf,__defineGetter__,__defineSetter__,__lookupGetter__,__lookupSetter__,__proto__,constructor
+13:43:21.048 api $data= | constructor,fromUTF8,fromHex,fromBase64,fromByteArray,fromData,isData | toString,toLocaleString,valueOf,hasOwnProperty,propertyIsEnumerable,isPrototypeOf,__defineGetter__,__defineSetter__,__lookupGetter__,__lookupSetter__,__proto__,constructor
+13:43:21.048 api $timer= | constructor,schedule,invalidate | toString,toLocaleString,valueOf,hasOwnProperty,propertyIsEnumerable,isPrototypeOf,__defineGetter__,__defineSetter__,__lookupGetter__,__lookupSetter__,__proto__,constructor
+13:43:21.048 edge connect url=wss://speech.platform.bing.com/consumer/speech/synthesize/readaloud/edge/v1?TrustedClientToken=6A5AA1D4EAFF4E9FB37E23D68491D6F4&ConnectionId=<32hex>&Sec-MS-GEC=864385AFE089928A748E436B3E6031C2830E7F92FFBFFC22D0775673321F8D24&Sec-MS-GEC-Version=1-143.0.3650.75
+13:43:21.048 edge connect params={"allowSelfSignedSSLCertificates":false,"timeoutInterval":30,"header":{"User-Agent":"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0","Origin":"chrome-extension://jdiccldimpdaibmpdkjnbmckianbfold","Cookie":"muid=9B2F328A02ED0DDC044E6F69915B99C5;","Pragma":"no-cache","Cache-Control":"no-cache","Accept-Language":"en-US,en;q=0.9"}}
+13:43:21.048 edge api socket= | constructor,open,close,sendString,sendData,ping,pong,listenOpen,listenClose,listenError,listenReceiveString,listenReceiveData,listenReceivePing,listenReceivePong,readyState | toString,toLocaleString,valueOf,hasOwnProperty,propertyIsEnumerable,isPrototypeOf,__defineGetter__,__defineSetter__,__lookupGetter__,__lookupSetter__,__proto__,constructor
+13:43:21.048 edge timer id typeof=number value=2
+13:43:21.048 edge #1 +1ms CALL open() readyState=3 ret=undefined
+13:43:21.744 edge #2 +696ms OPEN args=1 readyState=1 sameSocket=true
+13:43:21.744 edge #3 +696ms SEND speech.config chars=315 ret=undefined
+13:43:21.744 edge #4 +696ms SEND ssml chars=424 ret=undefined
+13:43:21.893 edge #5 +846ms TEXT n=1 typeof=string chars=186 path=turn.start head200="X-RequestId:7dca1e87df24b4469a21d399b165666e\r\nContent-Type:application/json; charset=utf-8\r\nPath:turn.start\r\n\r\n{\n  \"context\": {\n    \"serviceTag\": \"2eb3b6f536434904ba0311ca46e8439b\"\n  }\n}"
+13:43:21.893 edge #6 +846ms TEXT n=2 typeof=string chars=242 path=response head200="X-RequestId:7dca1e87df24b4469a21d399b165666e\r\nContent-Type:application/json; charset=utf-8\r\nPath:response\r\n\r\n{\"context\":{\"serviceTag\":\"2eb3b6f536434904ba0311ca46e8439b\"},\"audio\":{\"type\":\"inline\",\"stre"
+13:43:22.018 edge api data= | constructor,toUTF8,toHex,toBase64,toByteArray,readUInt8,writeUInt8,subData,appendData | toString,toLocaleString,valueOf,hasOwnProperty,propertyIsEnumerable,isPrototypeOf,__defineGetter__,__defineSetter__,__lookupGetter__,__lookupSetter__,__proto__,constructor
+13:43:22.023 edge #7 +975ms DATA n=1 length=850 N=128 audioBytes=720 wellFormed=true info={"typeofData":"object","isData":true,"typeofLength":"undefined","lengthInData":false,"typeofToByteArray":"function","typeofReadUInt8":"function","typeofToHex":"function","typeofSubData":"function","typeofToUTF8":"function","typeofToBase64":"function","typeofAppendData":"function","byteArrayIsArray":true,"lengthProp":null,"lengthByteArray":850,"lengthHex":850,"length":850,"nReadUInt8":128,"nByteArray":128,"nHex":128,"n":128,"wellFormed":true,"headerAgree":true,"startsWithRequestId":true,"subDataTail":"非$data:undefined","audioVia":"fromByteArray"} header="X-RequestId:7dca1e87df24b4469a21d399b165666e\r\nContent-Type:audio/mpeg\r\nX-StreamId:74A14668D9994607B4D3015B13990A10\r\nPath:audio\r\n"
+13:43:22.027 edge #8 +980ms DATA n=2 length=850 N=128 audioBytes=720 wellFormed=true info={"typeofData":"object","isData":true,"typeofLength":"undefined","lengthInData":false,"typeofToByteArray":"function","typeofReadUInt8":"function","typeofToHex":"function","typeofSubData":"function","typeofToUTF8":"function","typeofToBase64":"function","typeofAppendData":"function","byteArrayIsArray":true,"lengthProp":null,"lengthByteArray":850,"lengthHex":850,"length":850,"nReadUInt8":128,"nByteArray":128,"nHex":128,"n":128,"wellFormed":true,"headerAgree":true,"startsWithRequestId":true,"subDataTail":"非$data:undefined","audioVia":"fromByteArray"} header="X-RequestId:7dca1e87df24b4469a21d399b165666e\r\nContent-Type:audio/mpeg\r\nX-StreamId:74A14668D9994607B4D3015B13990A10\r\nPath:audio\r\n"
+13:43:22.031 edge #9 +983ms DATA n=3 length=850 N=128 audioBytes=720 wellFormed=true info={"typeofData":"object","isData":true,"typeofLength":"undefined","lengthInData":false,"typeofToByteArray":"function","typeofReadUInt8":"function","typeofToHex":"function","typeofSubData":"function","typeofToUTF8":"function","typeofToBase64":"function","typeofAppendData":"function","byteArrayIsArray":true,"lengthProp":null,"lengthByteArray":850,"lengthHex":850,"length":850,"nReadUInt8":128,"nByteArray":128,"nHex":128,"n":128,"wellFormed":true,"headerAgree":true,"startsWithRequestId":true,"subDataTail":"非$data:undefined","audioVia":"fromByteArray"} header="X-RequestId:7dca1e87df24b4469a21d399b165666e\r\nContent-Type:audio/mpeg\r\nX-StreamId:74A14668D9994607B4D3015B13990A10\r\nPath:audio\r\n"
+13:43:22.034 edge #10 +986ms DATA n=4 length=850 N=128 audioBytes=720 wellFormed=true
+13:43:22.036 edge #11 +988ms DATA n=5 length=850 N=128 audioBytes=720 wellFormed=true
+13:43:22.038 edge #12 +991ms DATA n=6 length=850 N=128 audioBytes=720 wellFormed=true
+13:43:22.038 edge #13 +991ms TEXT n=3 typeof=string chars=379 path=audio.metadata head200="X-RequestId:7dca1e87df24b4469a21d399b165666e\r\nContent-Type:application/json; charset=utf-8\r\nPath:audio.metadata\r\n\r\n{\n  \"Metadata\": [\n    {\n      \"Type\": \"WordBoundary\",\n      \"Data\": {\n        \"Offset"
+13:43:22.038 edge #14 +991ms TEXT n=4 typeof=string chars=379 path=audio.metadata head200="X-RequestId:7dca1e87df24b4469a21d399b165666e\r\nContent-Type:application/json; charset=utf-8\r\nPath:audio.metadata\r\n\r\n{\n  \"Metadata\": [\n    {\n      \"Type\": \"WordBoundary\",\n      \"Data\": {\n        \"Offset"
+13:43:22.038 edge #15 +991ms TEXT n=5 typeof=string chars=379 path=audio.metadata head200="X-RequestId:7dca1e87df24b4469a21d399b165666e\r\nContent-Type:application/json; charset=utf-8\r\nPath:audio.metadata\r\n\r\n{\n  \"Metadata\": [\n    {\n      \"Type\": \"WordBoundary\",\n      \"Data\": {\n        \"Offset"
+13:43:22.038 edge #16 +991ms TEXT n=6 typeof=string chars=377 path=audio.metadata head200="X-RequestId:7dca1e87df24b4469a21d399b165666e\r\nContent-Type:application/json; charset=utf-8\r\nPath:audio.metadata\r\n\r\n{\n  \"Metadata\": [\n    {\n      \"Type\": \"WordBoundary\",\n      \"Data\": {\n        \"Offset"
+13:43:22.038 edge #17 +991ms TEXT n=7 typeof=string chars=375 path=audio.metadata head200="X-RequestId:7dca1e87df24b4469a21d399b165666e\r\nContent-Type:application/json; charset=utf-8\r\nPath:audio.metadata\r\n\r\n{\n  \"Metadata\": [\n    {\n      \"Type\": \"WordBoundary\",\n      \"Data\": {\n        \"Offset"
+13:43:22.038 edge #18 +991ms TEXT n=8 typeof=string chars=379 path=audio.metadata head200="X-RequestId:7dca1e87df24b4469a21d399b165666e\r\nContent-Type:application/json; charset=utf-8\r\nPath:audio.metadata\r\n\r\n{\n  \"Metadata\": [\n    {\n      \"Type\": \"WordBoundary\",\n      \"Data\": {\n        \"Offset"
+13:43:22.038 edge #19 +991ms TEXT n=9 typeof=string chars=379 path=audio.metadata head200="X-RequestId:7dca1e87df24b4469a21d399b165666e\r\nContent-Type:application/json; charset=utf-8\r\nPath:audio.metadata\r\n\r\n{\n  \"Metadata\": [\n    {\n      \"Type\": \"WordBoundary\",\n      \"Data\": {\n        \"Offset"
+13:43:22.038 edge #20 +991ms TEXT n=10 typeof=string chars=376 path=audio.metadata head200="X-RequestId:7dca1e87df24b4469a21d399b165666e\r\nContent-Type:application/json; charset=utf-8\r\nPath:audio.metadata\r\n\r\n{\n  \"Metadata\": [\n    {\n      \"Type\": \"WordBoundary\",\n      \"Data\": {\n        \"Offset"
+13:43:22.038 edge #21 +991ms TEXT n=11 typeof=string chars=379 path=audio.metadata head200="X-RequestId:7dca1e87df24b4469a21d399b165666e\r\nContent-Type:application/json; charset=utf-8\r\nPath:audio.metadata\r\n\r\n{\n  \"Metadata\": [\n    {\n      \"Type\": \"WordBoundary\",\n      \"Data\": {\n        \"Offset"
+13:43:22.038 edge #22 +991ms TEXT n=12 typeof=string chars=379 path=audio.metadata head200="X-RequestId:7dca1e87df24b4469a21d399b165666e\r\nContent-Type:application/json; charset=utf-8\r\nPath:audio.metadata\r\n\r\n{\n  \"Metadata\": [\n    {\n      \"Type\": \"WordBoundary\",\n      \"Data\": {\n        \"Offset"
+13:43:22.038 edge #23 +991ms TEXT n=13 typeof=string chars=376 path=audio.metadata head200="X-RequestId:7dca1e87df24b4469a21d399b165666e\r\nContent-Type:application/json; charset=utf-8\r\nPath:audio.metadata\r\n\r\n{\n  \"Metadata\": [\n    {\n      \"Type\": \"WordBoundary\",\n      \"Data\": {\n        \"Offset"
+13:43:22.038 edge #24 +991ms TEXT n=14 typeof=string chars=381 path=audio.metadata head200="X-RequestId:7dca1e87df24b4469a21d399b165666e\r\nContent-Type:application/json; charset=utf-8\r\nPath:audio.metadata\r\n\r\n{\n  \"Metadata\": [\n    {\n      \"Type\": \"WordBoundary\",\n      \"Data\": {\n        \"Offset"
+13:43:22.043 edge #25 +996ms DATA n=7 length=850 N=128 audioBytes=720 wellFormed=true
+13:43:22.045 edge #26 +998ms DATA n=8 length=850 N=128 audioBytes=720 wellFormed=true
+13:43:22.048 edge #27 +1000ms DATA n=9 length=850 N=128 audioBytes=720 wellFormed=true
+13:43:22.050 edge #28 +1002ms DATA n=10 length=850 N=128 audioBytes=720 wellFormed=true
+13:43:22.052 edge #29 +1004ms DATA n=11 length=850 N=128 audioBytes=720 wellFormed=true
+13:43:22.054 edge #30 +1006ms DATA n=12 length=850 N=128 audioBytes=720 wellFormed=true
+13:43:22.056 edge #31 +1008ms DATA n=13 length=850 N=128 audioBytes=720 wellFormed=true
+13:43:22.057 edge #32 +1010ms DATA n=14 length=850 N=128 audioBytes=720 wellFormed=true
+13:43:22.059 edge #33 +1011ms DATA n=15 length=850 N=128 audioBytes=720 wellFormed=true
+13:43:22.060 edge #34 +1013ms DATA n=16 length=850 N=128 audioBytes=720 wellFormed=true
+13:43:22.071 edge #35 +1023ms DATA n=17 length=850 N=128 audioBytes=720 wellFormed=true
+13:43:22.079 edge #36 +1032ms DATA n=18 length=850 N=128 audioBytes=720 wellFormed=true
+13:43:22.081 edge #37 +1034ms DATA n=19 length=850 N=128 audioBytes=720 wellFormed=true
+13:43:22.083 edge #38 +1035ms DATA n=20 length=850 N=128 audioBytes=720 wellFormed=true
+13:43:22.084 edge #39 +1037ms DATA n=21 length=850 N=128 audioBytes=720 wellFormed=true
+13:43:22.086 edge #40 +1039ms DATA n=22 length=850 N=128 audioBytes=720 wellFormed=true
+13:43:22.088 edge #41 +1040ms DATA n=23 length=850 N=128 audioBytes=720 wellFormed=true
+13:43:22.098 edge #42 +1051ms DATA n=24 length=850 N=128 audioBytes=720 wellFormed=true
+13:43:22.101 edge #43 +1053ms DATA n=25 length=850 N=128 audioBytes=720 wellFormed=true
+13:43:22.102 edge #44 +1055ms DATA n=26 length=850 N=128 audioBytes=720 wellFormed=true
+13:43:22.104 edge #45 +1056ms DATA n=27 length=850 N=128 audioBytes=720 wellFormed=true
+13:43:22.105 edge #46 +1058ms DATA n=28 length=850 N=128 audioBytes=720 wellFormed=true
+13:43:22.107 edge #47 +1059ms DATA n=29 length=850 N=128 audioBytes=720 wellFormed=true
+13:43:22.108 edge #48 +1061ms DATA n=30 length=850 N=128 audioBytes=720 wellFormed=true
+13:43:22.109 edge #49 +1062ms DATA n=31 length=850 N=128 audioBytes=720 wellFormed=true
+13:43:22.111 edge #50 +1063ms DATA n=32 length=850 N=128 audioBytes=720 wellFormed=true
+13:43:22.111 edge #51 +1063ms TEXT n=15 typeof=string chars=381 path=audio.metadata head200="X-RequestId:7dca1e87df24b4469a21d399b165666e\r\nContent-Type:application/json; charset=utf-8\r\nPath:audio.metadata\r\n\r\n{\n  \"Metadata\": [\n    {\n      \"Type\": \"WordBoundary\",\n      \"Data\": {\n        \"Offset"
+13:43:22.111 edge #52 +1063ms TEXT n=16 typeof=string chars=378 path=audio.metadata head200="X-RequestId:7dca1e87df24b4469a21d399b165666e\r\nContent-Type:application/json; charset=utf-8\r\nPath:audio.metadata\r\n\r\n{\n  \"Metadata\": [\n    {\n      \"Type\": \"WordBoundary\",\n      \"Data\": {\n        \"Offset"
+13:43:22.112 edge #53 +1065ms DATA n=33 length=850 N=128 audioBytes=720 wellFormed=true
+13:43:22.113 edge #54 +1066ms DATA n=34 length=850 N=128 audioBytes=720 wellFormed=true
+13:43:22.115 edge #55 +1067ms DATA n=35 length=850 N=128 audioBytes=720 wellFormed=true
+13:43:22.116 edge #56 +1068ms DATA n=36 length=850 N=128 audioBytes=720 wellFormed=true
+13:43:22.212 edge #57 +1165ms DATA n=37 length=850 N=128 audioBytes=720 wellFormed=true
+13:43:22.214 edge #58 +1167ms DATA n=38 length=850 N=128 audioBytes=720 wellFormed=true
+13:43:22.217 edge #59 +1169ms DATA n=39 length=850 N=128 audioBytes=720 wellFormed=true
+13:43:22.219 edge #60 +1171ms DATA n=40 length=850 N=128 audioBytes=720 wellFormed=true
+13:43:22.221 edge #61 +1173ms DATA n=41 length=850 N=128 audioBytes=720 wellFormed=true
+13:43:22.223 edge #62 +1176ms DATA n=42 length=850 N=128 audioBytes=720 wellFormed=true
+13:43:22.225 edge #63 +1177ms DATA n=43 length=850 N=128 audioBytes=720 wellFormed=true
+13:43:22.227 edge #64 +1179ms DATA n=44 length=850 N=128 audioBytes=720 wellFormed=true
+13:43:22.229 edge #65 +1181ms DATA n=45 length=850 N=128 audioBytes=720 wellFormed=true
+13:43:22.231 edge #66 +1184ms DATA n=46 length=850 N=128 audioBytes=720 wellFormed=true
+13:43:22.233 edge #67 +1185ms DATA n=47 length=850 N=128 audioBytes=720 wellFormed=true
+13:43:22.235 edge #68 +1187ms DATA n=48 length=850 N=128 audioBytes=720 wellFormed=true
+13:43:22.236 edge #69 +1189ms DATA n=49 length=850 N=128 audioBytes=720 wellFormed=true
+13:43:22.237 edge #70 +1189ms DATA n=50 length=850 N=128 audioBytes=720 wellFormed=true
+13:43:22.237 edge #71 +1190ms DATA n=51 length=850 N=128 audioBytes=720 wellFormed=true
+13:43:22.238 edge #72 +1191ms DATA n=52 length=850 N=128 audioBytes=720 wellFormed=true
+13:43:22.238 edge #73 +1191ms DATA n=53 length=274 N=128 audioBytes=144 wellFormed=true
+13:43:22.238 edge #74 +1191ms DATA n=54 length=105 N=103 audioBytes=0 wellFormed=true info={"typeofData":"object","isData":true,"typeofLength":"undefined","lengthInData":false,"typeofToByteArray":"function","typeofReadUInt8":"function","typeofToHex":"function","typeofSubData":"function","typeofToUTF8":"function","typeofToBase64":"function","typeofAppendData":"function","byteArrayIsArray":true,"lengthProp":null,"lengthByteArray":105,"lengthHex":105,"length":105,"nReadUInt8":103,"nByteArray":103,"nHex":103,"n":103,"wellFormed":true,"headerAgree":false,"startsWithRequestId":true} header="X-RequestId:7dca1e87df24b4469a21d399b165666e\r\nX-StreamId:74A14668D9994607B4D3015B13990A10\r\nPath:audio\r\n"
+13:43:22.238 edge #75 +1191ms TEXT n=17 typeof=string chars=111 path=turn.end head200="X-RequestId:7dca1e87df24b4469a21d399b165666e\r\nContent-Type:application/json; charset=utf-8\r\nPath:turn.end\r\n\r\n{}"
+13:43:22.252 edge #76 +1204ms CALLED close (结束之后) form=empty ret=undefined readyState=2
+13:43:22.252 edge SUMMARY {"label":"edge","textFrames":17,"binaryFrames":54,"audioFrames":53,"emptyAudioFrames":1,"malformedFrames":0,"audioBytes":37584,"minFrame":105,"maxFrame":850,"events":["CALL open()@1","OPEN@696","SEND speech.config@696","SEND ssml@696","CALLED close@1204*"],"openMs":696,"firstAudioMs":975,"turnEndMs":1191,"audioBytesFromData":37584,"audioSha256":"1f2aa2296eb183aba080bdd26561f0475f105682a05d2400c5a912344b7a1dc0","finishMs":1204}
+13:43:22.252 END mode=edge ms=1204 audioBytes=37584 base64Chars=50112
+[2026-09-27 13:43:22.252 ● TranslateViewController ● 1655 ● I] playTTS(tts:) ● 播放音频:Bob.TTSResult
+[2026-09-27 13:43:22.253 ● AudioPlayer ● 221 ● I] play(info:) ● 播放音频文件：/Users/poyih/Library/Containers/com.hezongyidev.Bob/Data/Library/Caches/AudioCaches/fe1ea0665f165ffbee698e870e680ffe.mp3
+13:43:22.297 edge #77 +1250ms CLOSE (结束之后) args=3 readyState=3 code=typeof=number json=1000 string=1000 reason=typeof=string json="cancelled" string=cancelled
+[2026-09-27 13:43:28.666 ● AudioPlayer ● 265 ● I] audioPlayerDidFinishPlaying(_:successfully:) ● 播放完成: true
+[2026-09-27 13:43:28.666 ● TranslateViewController ● 1662 ● I] playTTS(tts:) ● 播放 tts 回调: tts=Bob.TTSResult; state=playSuccess

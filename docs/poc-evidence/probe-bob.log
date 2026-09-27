@@ -1,0 +1,73 @@
+13:34:34 probe listening on ws://127.0.0.1:18765/ audio=78000 bytes
+13:46:06 ---- connection from 127.0.0.1:54696, request head 713 bytes
+13:46:06 RAW b'GET /probe?TrustedClientToken=6A5AA1D4EAFF4E9FB37E23D68491D6F4&ConnectionId=e3f0f11058286c70fafdb817560dc88a&Sec-MS-GEC=919DE94760DE183129E38420AFA2863994FBC80A827D33062198A9EC5887AA5F&Sec-MS-GEC-Version=1-143.0.3650.75 HTTP/1.1\r\nHost: 127.0.0.1:18765\r\nPragma: no-cache\r\nSec-WebSocket-Key: ZnNpZXZxZmhlb2dudmd1dQ==\r\nSec-WebSocket-Version: 13\r\nX-Poc-Param: header\r\nUpgrade: websocket\r\nAccept-Language: en-US,en;q=0.9\r\nCache-Control: no-cache\r\nOrigin: chrome-extension://jdiccldimpdaibmpdkjnbmckianbfold\r\nUser-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0\r\nConnection: Upgrade\r\nCookie: muid=954CCA237036995628F02D85DB32F05C;\r\n\r\n'
+13:46:06 HANDSHAKE | GET /probe?TrustedClientToken=6A5AA1D4EAFF4E9FB37E23D68491D6F4&ConnectionId=e3f0f11058286c70fafdb817560dc88a&Sec-MS-GEC=919DE94760DE183129E38420AFA2863994FBC80A827D33062198A9EC5887AA5F&Sec-MS-GEC-Version=1-143.0.3650.75 HTTP/1.1
+13:46:06 HANDSHAKE | Host: 127.0.0.1:18765
+13:46:06 HANDSHAKE | Pragma: no-cache
+13:46:06 HANDSHAKE | Sec-WebSocket-Key: ZnNpZXZxZmhlb2dudmd1dQ==
+13:46:06 HANDSHAKE | Sec-WebSocket-Version: 13
+13:46:06 HANDSHAKE | X-Poc-Param: header
+13:46:06 HANDSHAKE | Upgrade: websocket
+13:46:06 HANDSHAKE | Accept-Language: en-US,en;q=0.9
+13:46:06 HANDSHAKE | Cache-Control: no-cache
+13:46:06 HANDSHAKE | Origin: chrome-extension://jdiccldimpdaibmpdkjnbmckianbfold
+13:46:06 HANDSHAKE | User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0
+13:46:06 HANDSHAKE | Connection: Upgrade
+13:46:06 HANDSHAKE | Cookie: muid=954CCA237036995628F02D85DB32F05C;
+13:46:06 handshake done, waiting for 2 client messages
+13:46:06 client message #1 opcode=text fin=True masked=True bytes=315 sha256=20bb1a1ea5729c66eff42b98db332446377bcdcd072f0ff14b2b2f4f5dc30be2
+13:46:06 CLIENT b'X-Timestamp:Sun Sep 27 2026 03:46:06 GMT+0000 (Coordinated Universal Time)\r\nContent-Type:application/json; charset=utf-8\r\nPath:speech.config\r\n\r\n{"context":{"synthesis":{"audio":{"metadataoptions":{"sentenceBoundaryEnabled":"false","wordBoundaryEnabled":"true"},"outputFormat":"audio-24khz-48kbitrate-mono-mp3"}}}}\r\n'
+13:46:06 client message #2 opcode=text fin=True masked=True bytes=393 sha256=c8cd6357b1d92119b16eb49bf0d795bb7e86c1d70316789f0f24ab96b2dadc34
+13:46:06 CLIENT b"X-RequestId:e8451ad63ca81ef9533f80f80a5f282f\r\nContent-Type:application/ssml+xml\r\nX-Timestamp:Sun Sep 27 2026 03:46:06 GMT+0000 (Coordinated Universal Time)Z\r\nPath:ssml\r\n\r\n<speak version='1.0' xmlns='http://www.w3.org/2001/10/synthesis' xml:lang='en-US'><voice name='zh-CN-XiaoxiaoNeural'><prosody pitch='+0Hz' rate='+0%' volume='+0%'>\xe6\x8e\xa2\xe9\x92\x88 ws://127.0.0.1:18765/probe</prosody></voice></speak>"
+13:46:06 sent binary #1 message=2085 audio=2000 单帧，一次写完
+13:46:07 sent binary #2 message=2085 audio=2000 单帧，拆成 3 次 TCP 写入（间隔 150ms）
+13:46:07 sent binary #3 message=2085 audio=2000 WebSocket 分片成 3 片
+13:46:07 sent binary #4 message=72085 audio=72000 64 位长度大帧
+13:46:07 sent binary #5 message=60 audio=0 无 Content-Type 的结束帧
+13:46:07 sent text turn.end
+13:46:07 expect: 5 次 listenReceiveData，message 长度依次为 [2085, 2085, 2085, 72085, 60]；音频合计 78000 字节 sha256=f60a6204b9c6de3314ad40ce5413a2b5cd1e906bf4c8222f640977d6f5822dae
+13:46:09 client CLOSE code=1000 reason=b''
+13:46:10 ---- connection from 127.0.0.1:54697, request head 397 bytes
+13:46:10 RAW b'GET /bare?TrustedClientToken=6A5AA1D4EAFF4E9FB37E23D68491D6F4&ConnectionId=c2f48c733f773d00fee882e57b1ae3b2&Sec-MS-GEC=919DE94760DE183129E38420AFA2863994FBC80A827D33062198A9EC5887AA5F&Sec-MS-GEC-Version=1-143.0.3650.75 HTTP/1.1\r\nHost: 127.0.0.1:18765\r\nSec-WebSocket-Version: 13\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nOrigin: ws://127.0.0.1:18765\r\nSec-WebSocket-Key: cGZmaWZrc29leGFpcW5mcQ==\r\n\r\n'
+13:46:10 HANDSHAKE | GET /bare?TrustedClientToken=6A5AA1D4EAFF4E9FB37E23D68491D6F4&ConnectionId=c2f48c733f773d00fee882e57b1ae3b2&Sec-MS-GEC=919DE94760DE183129E38420AFA2863994FBC80A827D33062198A9EC5887AA5F&Sec-MS-GEC-Version=1-143.0.3650.75 HTTP/1.1
+13:46:10 HANDSHAKE | Host: 127.0.0.1:18765
+13:46:10 HANDSHAKE | Sec-WebSocket-Version: 13
+13:46:10 HANDSHAKE | Upgrade: websocket
+13:46:10 HANDSHAKE | Connection: Upgrade
+13:46:10 HANDSHAKE | Origin: ws://127.0.0.1:18765
+13:46:10 HANDSHAKE | Sec-WebSocket-Key: cGZmaWZrc29leGFpcW5mcQ==
+13:46:10 handshake done, waiting for 2 client messages
+13:46:10 client message #1 opcode=text fin=True masked=True bytes=315 sha256=3b0ed89c9c171607b5b9dbdf1f9ae022def0ded288ad058bde485304d82e4a16
+13:46:10 CLIENT b'X-Timestamp:Sun Sep 27 2026 03:46:10 GMT+0000 (Coordinated Universal Time)\r\nContent-Type:application/json; charset=utf-8\r\nPath:speech.config\r\n\r\n{"context":{"synthesis":{"audio":{"metadataoptions":{"sentenceBoundaryEnabled":"false","wordBoundaryEnabled":"true"},"outputFormat":"audio-24khz-48kbitrate-mono-mp3"}}}}\r\n'
+13:46:10 client message #2 opcode=text fin=True masked=True bytes=393 sha256=68033f573139646c62ef7dea57fb84df57f05fa4077c04ae39f066e45384f76c
+13:46:10 CLIENT b"X-RequestId:26287cf2d4e28dc923e03da082f95c7c\r\nContent-Type:application/ssml+xml\r\nX-Timestamp:Sun Sep 27 2026 03:46:10 GMT+0000 (Coordinated Universal Time)Z\r\nPath:ssml\r\n\r\n<speak version='1.0' xmlns='http://www.w3.org/2001/10/synthesis' xml:lang='en-US'><voice name='zh-CN-XiaoxiaoNeural'><prosody pitch='+0Hz' rate='+0%' volume='+0%'>\xe6\x8e\xa2\xe9\x92\x88 ws://127.0.0.1:18765/probe</prosody></voice></speak>"
+13:46:10 sent binary #1 message=2085 audio=2000 单帧，一次写完
+13:46:10 sent binary #2 message=2085 audio=2000 单帧，拆成 3 次 TCP 写入（间隔 150ms）
+13:46:10 sent binary #3 message=2085 audio=2000 WebSocket 分片成 3 片
+13:46:10 sent binary #4 message=72085 audio=72000 64 位长度大帧
+13:46:10 sent binary #5 message=60 audio=0 无 Content-Type 的结束帧
+13:46:10 sent text turn.end
+13:46:10 expect: 5 次 listenReceiveData，message 长度依次为 [2085, 2085, 2085, 72085, 60]；音频合计 78000 字节 sha256=f60a6204b9c6de3314ad40ce5413a2b5cd1e906bf4c8222f640977d6f5822dae
+13:46:12 client CLOSE code=1000 reason=b''
+13:46:13 ---- connection from 127.0.0.1:54698, request head 399 bytes
+13:46:13 RAW b'GET /plural?TrustedClientToken=6A5AA1D4EAFF4E9FB37E23D68491D6F4&ConnectionId=58a808961378a395ae1765da2980cab3&Sec-MS-GEC=919DE94760DE183129E38420AFA2863994FBC80A827D33062198A9EC5887AA5F&Sec-MS-GEC-Version=1-143.0.3650.75 HTTP/1.1\r\nHost: 127.0.0.1:18765\r\nSec-WebSocket-Version: 13\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nOrigin: ws://127.0.0.1:18765\r\nSec-WebSocket-Key: anp2amlwc2VmeXBjZXdmZQ==\r\n\r\n'
+13:46:13 HANDSHAKE | GET /plural?TrustedClientToken=6A5AA1D4EAFF4E9FB37E23D68491D6F4&ConnectionId=58a808961378a395ae1765da2980cab3&Sec-MS-GEC=919DE94760DE183129E38420AFA2863994FBC80A827D33062198A9EC5887AA5F&Sec-MS-GEC-Version=1-143.0.3650.75 HTTP/1.1
+13:46:13 HANDSHAKE | Host: 127.0.0.1:18765
+13:46:13 HANDSHAKE | Sec-WebSocket-Version: 13
+13:46:13 HANDSHAKE | Upgrade: websocket
+13:46:13 HANDSHAKE | Connection: Upgrade
+13:46:13 HANDSHAKE | Origin: ws://127.0.0.1:18765
+13:46:13 HANDSHAKE | Sec-WebSocket-Key: anp2amlwc2VmeXBjZXdmZQ==
+13:46:13 handshake done, waiting for 2 client messages
+13:46:13 client message #1 opcode=text fin=True masked=True bytes=315 sha256=9764fee093c2f43da71d7531f7870c4305b1c65c52400be932498c0b8b2ff4ff
+13:46:13 CLIENT b'X-Timestamp:Sun Sep 27 2026 03:46:13 GMT+0000 (Coordinated Universal Time)\r\nContent-Type:application/json; charset=utf-8\r\nPath:speech.config\r\n\r\n{"context":{"synthesis":{"audio":{"metadataoptions":{"sentenceBoundaryEnabled":"false","wordBoundaryEnabled":"true"},"outputFormat":"audio-24khz-48kbitrate-mono-mp3"}}}}\r\n'
+13:46:13 client message #2 opcode=text fin=True masked=True bytes=393 sha256=60a4c5ec64b9b2aa412c4bbd5e582c0cdad27a9be98123c44cd0df5d4ad86365
+13:46:13 CLIENT b"X-RequestId:6dd2f6ea1c5064c257324bc6af84ed89\r\nContent-Type:application/ssml+xml\r\nX-Timestamp:Sun Sep 27 2026 03:46:13 GMT+0000 (Coordinated Universal Time)Z\r\nPath:ssml\r\n\r\n<speak version='1.0' xmlns='http://www.w3.org/2001/10/synthesis' xml:lang='en-US'><voice name='zh-CN-XiaoxiaoNeural'><prosody pitch='+0Hz' rate='+0%' volume='+0%'>\xe6\x8e\xa2\xe9\x92\x88 ws://127.0.0.1:18765/probe</prosody></voice></speak>"
+13:46:13 sent binary #1 message=2085 audio=2000 单帧，一次写完
+13:46:13 sent binary #2 message=2085 audio=2000 单帧，拆成 3 次 TCP 写入（间隔 150ms）
+13:46:14 sent binary #3 message=2085 audio=2000 WebSocket 分片成 3 片
+13:46:14 sent binary #4 message=72085 audio=72000 64 位长度大帧
+13:46:14 sent binary #5 message=60 audio=0 无 Content-Type 的结束帧
+13:46:14 sent text turn.end
+13:46:14 expect: 5 次 listenReceiveData，message 长度依次为 [2085, 2085, 2085, 72085, 60]；音频合计 78000 字节 sha256=f60a6204b9c6de3314ad40ce5413a2b5cd1e906bf4c8222f640977d6f5822dae
+13:46:15 client CLOSE code=1000 reason=b''
