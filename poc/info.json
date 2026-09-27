@@ -1,0 +1,12 @@
+{
+    "identifier": "com.poyih.bob.plugin.edge.tts.poc",
+    "version": "0.0.1",
+    "category": "tts",
+    "name": "Edge TTS PoC（仅验证）",
+    "summary": "验证 Bob 的 $websocket 能否直连微软 Edge「大声朗读」接口。只打日志、不做分段与重试，不是正式插件。",
+    "icon": "050",
+    "author": "poyih & Claude",
+    "homepage": "https://github.com/poyih/bob-plugin-edge-tts",
+    "minBobVersion": "1.6.0",
+    "options": []
+}
