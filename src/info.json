@@ -1,0 +1,243 @@
+{
+    "identifier": "com.poyih.bob.plugin.edge.tts",
+    "version": "1.0.0",
+    "category": "tts",
+    "name": "Microsoft Edge 语音合成",
+    "summary": "免 API Key 调用微软 Edge 浏览器「大声朗读」的语音合成接口，国内直连，覆盖 80 多种语言。非官方接口，微软可能随时变更。",
+    "icon": "icon.png",
+    "author": "poyih & Claude",
+    "homepage": "https://github.com/poyih/bob-plugin-edge-tts",
+    "appcast": "https://raw.githubusercontent.com/poyih/bob-plugin-edge-tts/main/appcast.json",
+    "minBobVersion": "1.8.0",
+    "options": [
+        {
+            "identifier": "voiceMode",
+            "type": "menu",
+            "title": "音色模式",
+            "defaultValue": "auto",
+            "desc": "按语言自动：每种语言用各自的默认音色，中 / 英 / 日 / 韩等六种语言可在下面单独指定。全局固定：所有语言都用「全局音色」，建议配合 Multilingual 系列。",
+            "menuValues": [
+                { "title": "按语言自动（推荐）", "value": "auto" },
+                { "title": "全局固定", "value": "global" }
+            ]
+        },
+        {
+            "identifier": "globalVoice",
+            "type": "menu",
+            "title": "全局音色",
+            "defaultValue": "en-US-EmmaMultilingualNeural",
+            "desc": "仅在音色模式为「全局固定」时生效。Multilingual 系列能读多种语言；普通音色只能读自己的语言（中日韩音色还能读英文），读别的语言会提示「未返回音频」。",
+            "menuValues": [
+                { "title": "Emma Multilingual — 女声，多语言，开朗清晰", "value": "en-US-EmmaMultilingualNeural" },
+                { "title": "Ava Multilingual — 女声，多语言，亲切有表现力", "value": "en-US-AvaMultilingualNeural" },
+                { "title": "Andrew Multilingual — 男声，多语言，温暖自信", "value": "en-US-AndrewMultilingualNeural" },
+                { "title": "Brian Multilingual — 男声，多语言，随和真诚", "value": "en-US-BrianMultilingualNeural" },
+                { "title": "William Multilingual — 男声，多语言（澳大利亚）", "value": "en-AU-WilliamMultilingualNeural" },
+                { "title": "Vivienne Multilingual — 女声，多语言（法国）", "value": "fr-FR-VivienneMultilingualNeural" },
+                { "title": "Remy Multilingual — 男声，多语言（法国）", "value": "fr-FR-RemyMultilingualNeural" },
+                { "title": "Seraphina Multilingual — 女声，多语言（德国）", "value": "de-DE-SeraphinaMultilingualNeural" },
+                { "title": "Florian Multilingual — 男声，多语言（德国）", "value": "de-DE-FlorianMultilingualNeural" },
+                { "title": "Giuseppe Multilingual — 男声，多语言（意大利）", "value": "it-IT-GiuseppeMultilingualNeural" },
+                { "title": "Hyunsu Multilingual — 男声，多语言（韩国）", "value": "ko-KR-HyunsuMultilingualNeural" },
+                { "title": "Thalita Multilingual — 女声，多语言（巴西）", "value": "pt-BR-ThalitaMultilingualNeural" },
+                { "title": "晓晓 Xiaoxiao — 普通话女声，温暖", "value": "zh-CN-XiaoxiaoNeural" },
+                { "title": "晓伊 Xiaoyi — 普通话女声，活泼", "value": "zh-CN-XiaoyiNeural" },
+                { "title": "云希 Yunxi — 普通话男声，阳光", "value": "zh-CN-YunxiNeural" },
+                { "title": "云健 Yunjian — 普通话男声，激情", "value": "zh-CN-YunjianNeural" },
+                { "title": "云扬 Yunyang — 普通话男声，新闻播报", "value": "zh-CN-YunyangNeural" },
+                { "title": "云夏 Yunxia — 普通话男声，可爱", "value": "zh-CN-YunxiaNeural" },
+                { "title": "曉臻 HsiaoChen — 台湾国语女声", "value": "zh-TW-HsiaoChenNeural" },
+                { "title": "曉曼 HiuMaan — 粤语女声", "value": "zh-HK-HiuMaanNeural" },
+                { "title": "Aria — 美式英语女声，积极自信", "value": "en-US-AriaNeural" },
+                { "title": "Jenny — 美式英语女声，友好体贴", "value": "en-US-JennyNeural" },
+                { "title": "Ava — 美式英语女声，亲切有表现力", "value": "en-US-AvaNeural" },
+                { "title": "Guy — 美式英语男声，富有激情", "value": "en-US-GuyNeural" },
+                { "title": "Andrew — 美式英语男声，温暖自信", "value": "en-US-AndrewNeural" },
+                { "title": "Sonia — 英式英语女声", "value": "en-GB-SoniaNeural" },
+                { "title": "Ryan — 英式英语男声", "value": "en-GB-RyanNeural" },
+                { "title": "七海 Nanami — 日语女声", "value": "ja-JP-NanamiNeural" },
+                { "title": "圭太 Keita — 日语男声", "value": "ja-JP-KeitaNeural" },
+                { "title": "선히 SunHi — 韩语女声", "value": "ko-KR-SunHiNeural" },
+                { "title": "인준 InJoon — 韩语男声", "value": "ko-KR-InJoonNeural" }
+            ]
+        },
+        {
+            "identifier": "voiceZhHans",
+            "type": "menu",
+            "title": "简体中文音色",
+            "defaultValue": "auto",
+            "desc": "朗读简体中文时使用。选了具体音色后，即使音色模式是「全局固定」也以这里为准。",
+            "menuValues": [
+                { "title": "不单独指定（按语言自动时用晓晓）", "value": "auto" },
+                { "title": "晓晓 Xiaoxiao — 女声，温暖", "value": "zh-CN-XiaoxiaoNeural" },
+                { "title": "晓伊 Xiaoyi — 女声，活泼", "value": "zh-CN-XiaoyiNeural" },
+                { "title": "云希 Yunxi — 男声，阳光", "value": "zh-CN-YunxiNeural" },
+                { "title": "云健 Yunjian — 男声，激情", "value": "zh-CN-YunjianNeural" },
+                { "title": "云扬 Yunyang — 男声，新闻播报", "value": "zh-CN-YunyangNeural" },
+                { "title": "云夏 Yunxia — 男声，可爱", "value": "zh-CN-YunxiaNeural" },
+                { "title": "晓北 Xiaobei — 女声，东北话", "value": "zh-CN-liaoning-XiaobeiNeural" },
+                { "title": "晓妮 Xiaoni — 女声，陕西话", "value": "zh-CN-shaanxi-XiaoniNeural" },
+                { "title": "Emma Multilingual — 女声，多语言", "value": "en-US-EmmaMultilingualNeural" },
+                { "title": "Ava Multilingual — 女声，多语言", "value": "en-US-AvaMultilingualNeural" },
+                { "title": "Andrew Multilingual — 男声，多语言", "value": "en-US-AndrewMultilingualNeural" },
+                { "title": "Brian Multilingual — 男声，多语言", "value": "en-US-BrianMultilingualNeural" }
+            ]
+        },
+        {
+            "identifier": "voiceZhHant",
+            "type": "menu",
+            "title": "繁体中文音色",
+            "defaultValue": "auto",
+            "desc": "朗读繁体中文时使用。",
+            "menuValues": [
+                { "title": "不单独指定（按语言自动时用曉臻）", "value": "auto" },
+                { "title": "曉臻 HsiaoChen — 台湾国语女声", "value": "zh-TW-HsiaoChenNeural" },
+                { "title": "曉雨 HsiaoYu — 台湾国语女声", "value": "zh-TW-HsiaoYuNeural" },
+                { "title": "雲哲 YunJhe — 台湾国语男声", "value": "zh-TW-YunJheNeural" },
+                { "title": "晓晓 Xiaoxiao — 普通话女声", "value": "zh-CN-XiaoxiaoNeural" },
+                { "title": "云希 Yunxi — 普通话男声", "value": "zh-CN-YunxiNeural" }
+            ]
+        },
+        {
+            "identifier": "voiceYue",
+            "type": "menu",
+            "title": "粤语音色",
+            "defaultValue": "auto",
+            "desc": "朗读粤语时使用。",
+            "menuValues": [
+                { "title": "不单独指定（按语言自动时用曉曼）", "value": "auto" },
+                { "title": "曉曼 HiuMaan — 女声", "value": "zh-HK-HiuMaanNeural" },
+                { "title": "曉佳 HiuGaai — 女声", "value": "zh-HK-HiuGaaiNeural" },
+                { "title": "雲龍 WanLung — 男声", "value": "zh-HK-WanLungNeural" }
+            ]
+        },
+        {
+            "identifier": "voiceEn",
+            "type": "menu",
+            "title": "英语音色",
+            "defaultValue": "auto",
+            "desc": "朗读英语时使用。",
+            "menuValues": [
+                { "title": "不单独指定（按语言自动时用 Aria）", "value": "auto" },
+                { "title": "Aria — 美式女声，积极自信", "value": "en-US-AriaNeural" },
+                { "title": "Jenny — 美式女声，友好体贴", "value": "en-US-JennyNeural" },
+                { "title": "Ava — 美式女声，亲切有表现力", "value": "en-US-AvaNeural" },
+                { "title": "Emma — 美式女声，开朗清晰", "value": "en-US-EmmaNeural" },
+                { "title": "Michelle — 美式女声，友好悦耳", "value": "en-US-MichelleNeural" },
+                { "title": "Ana — 美式女声，可爱", "value": "en-US-AnaNeural" },
+                { "title": "Andrew — 美式男声，温暖自信", "value": "en-US-AndrewNeural" },
+                { "title": "Brian — 美式男声，随和真诚", "value": "en-US-BrianNeural" },
+                { "title": "Guy — 美式男声，富有激情", "value": "en-US-GuyNeural" },
+                { "title": "Christopher — 美式男声，沉稳权威", "value": "en-US-ChristopherNeural" },
+                { "title": "Eric — 美式男声，理性", "value": "en-US-EricNeural" },
+                { "title": "Roger — 美式男声，活泼", "value": "en-US-RogerNeural" },
+                { "title": "Steffan — 美式男声，理性", "value": "en-US-SteffanNeural" },
+                { "title": "Emma Multilingual — 美式女声，多语言", "value": "en-US-EmmaMultilingualNeural" },
+                { "title": "Ava Multilingual — 美式女声，多语言", "value": "en-US-AvaMultilingualNeural" },
+                { "title": "Andrew Multilingual — 美式男声，多语言", "value": "en-US-AndrewMultilingualNeural" },
+                { "title": "Brian Multilingual — 美式男声，多语言", "value": "en-US-BrianMultilingualNeural" },
+                { "title": "Sonia — 英式女声", "value": "en-GB-SoniaNeural" },
+                { "title": "Libby — 英式女声", "value": "en-GB-LibbyNeural" },
+                { "title": "Maisie — 英式女声", "value": "en-GB-MaisieNeural" },
+                { "title": "Ryan — 英式男声", "value": "en-GB-RyanNeural" },
+                { "title": "Thomas — 英式男声", "value": "en-GB-ThomasNeural" },
+                { "title": "Natasha — 澳大利亚女声", "value": "en-AU-NatashaNeural" },
+                { "title": "William Multilingual — 澳大利亚男声，多语言", "value": "en-AU-WilliamMultilingualNeural" },
+                { "title": "Clara — 加拿大女声", "value": "en-CA-ClaraNeural" },
+                { "title": "Liam — 加拿大男声", "value": "en-CA-LiamNeural" },
+                { "title": "Neerja — 印度女声", "value": "en-IN-NeerjaNeural" },
+                { "title": "Prabhat — 印度男声", "value": "en-IN-PrabhatNeural" }
+            ]
+        },
+        {
+            "identifier": "voiceJa",
+            "type": "menu",
+            "title": "日语音色",
+            "defaultValue": "auto",
+            "desc": "朗读日语时使用。",
+            "menuValues": [
+                { "title": "不单独指定（按语言自动时用七海）", "value": "auto" },
+                { "title": "七海 Nanami — 女声", "value": "ja-JP-NanamiNeural" },
+                { "title": "圭太 Keita — 男声", "value": "ja-JP-KeitaNeural" },
+                { "title": "Emma Multilingual — 女声，多语言", "value": "en-US-EmmaMultilingualNeural" },
+                { "title": "Andrew Multilingual — 男声，多语言", "value": "en-US-AndrewMultilingualNeural" }
+            ]
+        },
+        {
+            "identifier": "voiceKo",
+            "type": "menu",
+            "title": "韩语音色",
+            "defaultValue": "auto",
+            "desc": "朗读韩语时使用。",
+            "menuValues": [
+                { "title": "不单独指定（按语言自动时用 SunHi）", "value": "auto" },
+                { "title": "선히 SunHi — 女声", "value": "ko-KR-SunHiNeural" },
+                { "title": "인준 InJoon — 男声", "value": "ko-KR-InJoonNeural" },
+                { "title": "현수 Hyunsu Multilingual — 男声，多语言", "value": "ko-KR-HyunsuMultilingualNeural" }
+            ]
+        },
+        {
+            "identifier": "customVoice",
+            "type": "text",
+            "title": "自定义音色",
+            "defaultValue": "",
+            "textConfig": {
+                "type": "visible",
+                "placeholderText": "留空则按上面的设置，例如 fr-FR-HenriNeural"
+            },
+            "desc": "填了就优先生效，覆盖上面所有音色设置，对所有语言都用这一个音色。填音色的 ShortName，完整列表见 README。"
+        },
+        {
+            "identifier": "rate",
+            "type": "menu",
+            "title": "语速",
+            "defaultValue": "+0%",
+            "menuValues": [
+                { "title": "-50% — 很慢", "value": "-50%" },
+                { "title": "-30%", "value": "-30%" },
+                { "title": "-20%", "value": "-20%" },
+                { "title": "-10%", "value": "-10%" },
+                { "title": "+0% — 正常", "value": "+0%" },
+                { "title": "+10%", "value": "+10%" },
+                { "title": "+20%", "value": "+20%" },
+                { "title": "+30%", "value": "+30%" },
+                { "title": "+50%", "value": "+50%" },
+                { "title": "+75%", "value": "+75%" },
+                { "title": "+100% — 两倍速", "value": "+100%" }
+            ]
+        },
+        {
+            "identifier": "pitch",
+            "type": "menu",
+            "title": "音调",
+            "defaultValue": "+0Hz",
+            "menuValues": [
+                { "title": "-50Hz — 很低", "value": "-50Hz" },
+                { "title": "-30Hz", "value": "-30Hz" },
+                { "title": "-20Hz", "value": "-20Hz" },
+                { "title": "-10Hz", "value": "-10Hz" },
+                { "title": "+0Hz — 正常", "value": "+0Hz" },
+                { "title": "+10Hz", "value": "+10Hz" },
+                { "title": "+20Hz", "value": "+20Hz" },
+                { "title": "+30Hz", "value": "+30Hz" },
+                { "title": "+50Hz — 很高", "value": "+50Hz" }
+            ]
+        },
+        {
+            "identifier": "volume",
+            "type": "menu",
+            "title": "音量",
+            "defaultValue": "+0%",
+            "desc": "相对于音色默认音量的增减，播放音量仍由系统决定。",
+            "menuValues": [
+                { "title": "-50%", "value": "-50%" },
+                { "title": "-30%", "value": "-30%" },
+                { "title": "-10%", "value": "-10%" },
+                { "title": "+0% — 正常", "value": "+0%" },
+                { "title": "+10%", "value": "+10%" },
+                { "title": "+30%", "value": "+30%" },
+                { "title": "+50%", "value": "+50%" }
+            ]
+        }
+    ]
+}

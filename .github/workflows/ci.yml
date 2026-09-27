@@ -1,0 +1,14 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    # jsc（JavaScriptCore）只有 macOS 有，而它正是 Bob 跑插件的引擎
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: make test

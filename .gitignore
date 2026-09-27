@@ -1,0 +1,6 @@
+dist/
+.DS_Store
+*.bobplugin
+__pycache__/
+*.py[cod]
+.claude/settings.local.json
