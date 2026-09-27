@@ -197,6 +197,16 @@ function activeTimers() {
     }).length;
 }
 
+// 插件的看门狗一次只挂一个定时器，到点没事就重新挂一个；用例只关心当前还活着的那个
+function fireActiveTimer() {
+    for (var i = timers.length - 1; i >= 0; i--) {
+        if (timers[i].active) {
+            return fireTimer(timers[i]);
+        }
+    }
+    return false;
+}
+
 // 每新建一条连接取走一个脚本，open() 时执行；没有脚本的连接 open 之后什么都不发生。
 var sockets = [];
 var socketScripts = [];
@@ -859,8 +869,10 @@ var XIAOXIAO_FULL = "Microsoft Server Speech Text to Speech Voice (zh-CN, Xiaoxi
     eq(sockets[0].closeArgTypes[0], "object", "close 传入对象参数（Bob 1.21.0 不带参数会记未捕获异常）");
     eq(activeTimers(), 0, "成功后定时器被取消");
     eq(T.activeSocketCount(), 0, "成功后不再持有 socket");
-    eq(timers.length, 1, "每条连接一个超时定时器");
-    ok(timers[0].interval === 30 && timers[0].repeats === false, "超时定时器 30 秒、不重复");
+    eq(timers.length, 1, "顺利合成时每条连接只挂过一个定时器");
+    ok(timers[0].interval <= 10 && timers[0].interval > 9.9 && timers[0].repeats === false,
+        "看门狗先按 10 秒的握手期限上弦、不重复");
+    eq(sockets[0].params.timeoutInterval, 30, "传给 Bob 的 timeoutInterval 是 30 秒");
     ok(loggedLine("done voice=zh-CN-XiaoxiaoNeural(table)") && loggedLine("segments=1") &&
         loggedLine("bytes=" + audio.length) && loggedLine(" ms="), "日志记录音色、段数、字节数、耗时");
     ok(!logs.some(function (l) { return l.indexOf("你好") >= 0 || l.indexOf("世界") >= 0; }), "日志不包含朗读的文本");
@@ -1016,7 +1028,9 @@ var XIAOXIAO_FULL = "Microsoft Server Speech Text to Speech Voice (zh-CN, Xiaoxi
     sockets[0].fireText(textFrame("turn.start"));
     sockets[0].fireData(makeData(binaryFrame(AUDIO_HEADER, fakeAudio(720))));
     eq(r.length, 0, "超时：收到部分音频但没有 turn.end，仍不回调");
-    ok(fireTimer(timers[0]), "超时：30 秒定时器触发");
+    ok(fireActiveTimer() && r.length === 0 && activeTimers() === 1, "超时：期限没到时看门狗只会重新上弦");
+    clockOffset += 30001;
+    ok(fireActiveTimer(), "超时：30 秒到点");
     eq(r.length, 1, "超时：定时器触发后回调一次，不会挂死");
     ok(r[0].error && r[0].error.type === "network" && r[0].error.message.indexOf("超时") > 0, "超时映射为 network");
     ok(r[0].error.addtion.kind === "timeout" && r[0].error.addtion.timeoutSeconds === 30 &&
@@ -1027,12 +1041,51 @@ var XIAOXIAO_FULL = "Microsoft Server Speech Text to Speech Voice (zh-CN, Xiaoxi
     sockets[0].fireClose(1000, "");
     eq(r.length, 1, "超时之后迟到的 turn.end 被忽略");
 
-    // 握手一直没有结果（open 都没来）
+    // 握手一直没有结果（open 都没来）。真机上连接被拒、域名解析失败时 Bob 不给任何回调
     reset();
     r = speak(ZH);
     ok(r.length === 0 && sockets.length === 1 && sockets[0].openCalls === 1, "握手没有结果时等待");
-    fireTimer(timers[0]);
+    clockOffset += 5000;
+    ok(fireActiveTimer() && r.length === 0 && activeTimers() === 1, "握手超时：没到 10 秒时看门狗只会重新上弦");
+    clockOffset += 5001;
+    ok(fireActiveTimer(), "握手超时：10 秒到点");
     ok(r.length === 1 && r[0].error.type === "network" && r[0].error.addtion.opened === false, "握手阶段超时同样映射为 network");
+    ok(r[0].error.addtion.kind === "connectTimeout" && r[0].error.addtion.openTimeoutSeconds === 10 &&
+        r[0].error.message.indexOf("连接不上微软语音服务") === 0, "握手超时提示检查网络，并注明等了 10 秒");
+    ok(sockets[0].closeCalls === 1 && activeTimers() === 0 && T.activeSocketCount() === 0, "握手超时后关闭连接、不留定时器");
+    ok(sockets.length === 1 && httpRequests.length === 0, "握手超时不重试，也不触发时钟兜底");
+
+    // 握手之后服务端不吭声。真机上 TCP 被掐断、服务端沉默时 Bob 同样不给任何回调
+    reset();
+    socketScripts.push(openOnlyScript);
+    r = speak(ZH);
+    sockets[0].fireText(textFrame("turn.start"));
+    clockOffset += 9000;
+    sockets[0].fireData(makeData(binaryFrame(AUDIO_HEADER, fakeAudio(720))));
+    clockOffset += 9000;
+    ok(fireActiveTimer() && r.length === 0 && activeTimers() === 1, "空闲超时：距上一帧不到 15 秒时只会重新上弦");
+    clockOffset += 6001;
+    ok(fireActiveTimer(), "空闲超时：距上一帧 15 秒到点");
+    ok(r.length === 1 && r[0].error.type === "network" && r[0].error.addtion.kind === "stalled" &&
+        r[0].error.addtion.idleSeconds === 15, "空闲超时映射为 network");
+    ok(r[0].error.message.indexOf("连接中断") > 0 && r[0].error.addtion.audioBytes === 720 &&
+        r[0].error.addtion.opened === true, "空闲超时：提示连接中断，addtion 记录已收到的字节数");
+    ok(sockets[0].closeCalls === 1 && activeTimers() === 0 && httpRequests.length === 0, "空闲超时后关闭连接，不触发时钟兜底");
+
+    // 一直有数据进来就不算空闲，最终由 30 秒的总期限收场
+    reset();
+    socketScripts.push(openOnlyScript);
+    r = speak(ZH);
+    for (var tick = 0; tick < 5; tick++) {
+        clockOffset += 5900;
+        sockets[0].fireData(makeData(binaryFrame(AUDIO_HEADER, fakeAudio(720))));
+        fireActiveTimer();
+    }
+    ok(r.length === 0 && activeTimers() === 1, "持续收到数据时不会误判为空闲");
+    clockOffset += 600;
+    fireActiveTimer();
+    ok(r.length === 1 && r[0].error.addtion.kind === "timeout" && r[0].error.addtion.audioBytes === 3600,
+        "持续收到数据但 30 秒内没有 turn.end 时按总超时处理");
 
     // 20. 状态机：turn.end 但没有音频
     reset();
@@ -1145,10 +1198,15 @@ var XIAOXIAO_FULL = "Microsoft Server Speech Text to Speech Voice (zh-CN, Xiaoxi
         successScript(fakeAudio(300), 720)(socket);
     }, openOnlyScript);
     r = speak({ text: paragraph, lang: "zh-Hans" });
-    ok(r.length === 0 && timers.length === 2 && timers[1].interval <= 15 && timers[1].interval >= 14 &&
-        sockets[1].params.timeoutInterval === timers[1].interval, "剩余预算不足 30 秒时，连接超时随之缩短");
-    fireTimer(timers[1]);
-    ok(r.length === 1 && r[0].error.type === "network", "缩短后的超时触发时回调 network");
+    ok(r.length === 0 && sockets[1].params.timeoutInterval <= 15 && sockets[1].params.timeoutInterval >= 14,
+        "剩余预算不足 30 秒时，连接超时随之缩短");
+    sockets[1].fireData(makeData(binaryFrame(AUDIO_HEADER, fakeAudio(720))));
+    clockOffset += 14000;
+    sockets[1].fireData(makeData(binaryFrame(AUDIO_HEADER, fakeAudio(720))));
+    clockOffset += 1001;
+    fireActiveTimer();
+    ok(r.length === 1 && r[0].error.type === "network" && r[0].error.addtion.kind === "timeout" &&
+        r[0].error.addtion.timeoutSeconds <= 15, "缩短后的超时触发时回调 network");
 
     // 25. 没有 $timer / $websocket 的运行时
     reset();
@@ -1232,9 +1290,10 @@ var XIAOXIAO_FULL = "Microsoft Server Speech Text to Speech Voice (zh-CN, Xiaoxi
     reset();
     socketScripts.push(openOnlyScript);
     r = validate();
-    ok(r.length === 0 && timers[0].interval <= 25, "pluginValidate 的超时比朗读更短");
-    fireTimer(timers[0]);
-    fireTimer(timers[0]);
+    ok(r.length === 0 && sockets[0].params.timeoutInterval <= 25, "pluginValidate 的超时比朗读更短");
+    clockOffset += 25001;
+    fireActiveTimer();
+    fireActiveTimer();
     sockets[0].fireText(textFrame("turn.end"));
     ok(r.length === 1 && r[0].result === false && r[0].error.type === "network", "pluginValidate 超时只回调一次");
 

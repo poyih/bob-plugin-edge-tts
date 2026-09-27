@@ -6,8 +6,15 @@ var LOG_TAG = "[edge-tts]";
 var PLUGIN_TIMEOUT_INTERVAL = 60;
 var TOTAL_BUDGET_MS = 55000;
 var VALIDATE_BUDGET_MS = 25000;
-// 每条 WebSocket 连接的超时：握手超时交给 Bob，收不到 turn.end 由插件自己的定时器兜底
+// 每条 WebSocket 连接的超时。真机实测（docs/poc-findings.md）：连接被拒、域名解析失败、
+// TCP 被掐断、握手后服务端不吭声，这几种情况 Bob 都不给任何回调，timeoutInterval 也不起作用，
+// 所以三个超时都由插件自己的看门狗负责。
+// 单条连接从发起到 turn.end 的上限
 var CONNECT_TIMEOUT = 30;
+// 握手的上限。正常握手不到 1 秒
+var OPEN_TIMEOUT = 10;
+// 握手之后连续收不到任何帧的上限。微软是一口气把音频推完的，帧与帧之间只隔几毫秒
+var IDLE_TIMEOUT = 15;
 var SKEW_PROBE_TIMEOUT = 10;
 
 var MESSAGE_REJECTED = "微软接口拒绝连接，请检查系统时间；若持续失败请更新插件";
@@ -787,11 +794,13 @@ function forgetSocket(socket) {
 }
 
 // 建一条连接合成一段文本。callback(failure, audio)：
-//   failure = { kind, detail }，kind 取 handshake / closed / stream / timeout / noAudio / internal
+//   failure = { kind, detail }，kind 取 handshake / connectTimeout / closed / stream / stalled /
+//             timeout / noAudio / internal
 //   audio   = { frames: [{ bytes, start }], bytes, textFrames, binaryFrames, ignoredFrames, ms }
 // 无论事件以什么顺序到达，callback 只会被调用一次。
 function connectOnce(params, callback) {
     var startedAt = nowMs();
+    var lastActivityAt = startedAt;
     var finished = false;
     var opened = false;
     var socket = null;
@@ -847,8 +856,46 @@ function connectOnce(params, callback) {
         };
     }
 
+    // 看门狗：一次只挂一个不重复的定时器，到点后看哪条期限到了；都没到就按最近的期限重新上弦。
+    // 收到帧时只更新 lastActivityAt，不去动定时器。
+    function deadlines() {
+        var overall = startedAt + params.timeoutSeconds * 1000;
+        var phase = opened ? lastActivityAt + IDLE_TIMEOUT * 1000 : startedAt + OPEN_TIMEOUT * 1000;
+        return { overall: overall, phase: phase, next: Math.min(overall, phase) };
+    }
+
+    function armWatchdog() {
+        if (typeof $timer === "undefined" || !$timer || typeof $timer.schedule !== "function") {
+            return;
+        }
+        timerId = $timer.schedule({
+            interval: Math.max(0.05, (deadlines().next - nowMs()) / 1000),
+            repeats: false,
+            handler: onWatchdog
+        });
+    }
+
+    function onWatchdog() {
+        timerId = null;
+        if (finished) {
+            return;
+        }
+        var now = nowMs();
+        var limit = deadlines();
+        if (now >= limit.overall) {
+            finish({ kind: "timeout", detail: { timeoutSeconds: params.timeoutSeconds } });
+        } else if (now < limit.phase) {
+            armWatchdog();
+        } else if (opened) {
+            finish({ kind: "stalled", detail: { idleSeconds: IDLE_TIMEOUT } });
+        } else {
+            finish({ kind: "connectTimeout", detail: { openTimeoutSeconds: OPEN_TIMEOUT } });
+        }
+    }
+
     function onOpen() {
         opened = true;
+        lastActivityAt = nowMs();
         var ms = correctedNowMs();
         socket.sendString(buildConfigMessage(ms));
         socket.sendString(buildSsmlMessage(ms, params.voiceName, params.prosody, params.text));
@@ -861,6 +908,7 @@ function connectOnce(params, callback) {
         if (text === undefined) {
             return;
         }
+        lastActivityAt = nowMs();
         stats.textFrames += 1;
         var frame = parseTextFrame(text);
         if (frame.path !== "turn.end") {
@@ -878,6 +926,7 @@ function connectOnce(params, callback) {
         if (data === undefined) {
             return;
         }
+        lastActivityAt = nowMs();
         stats.binaryFrames += 1;
         var bytes = dataToBytes(data);
         var frame = parseBinaryFrame(bytes);
@@ -949,17 +998,7 @@ function connectOnce(params, callback) {
         socket.listenError(guarded("error", onError));
         socket.listenClose(guarded("close", onClose));
 
-        if (typeof $timer !== "undefined" && $timer && typeof $timer.schedule === "function") {
-            timerId = $timer.schedule({
-                interval: params.timeoutSeconds,
-                repeats: false,
-                handler: function () {
-                    timerId = null;
-                    finish({ kind: "timeout", detail: { timeoutSeconds: params.timeoutSeconds } });
-                }
-            });
-        }
-
+        armWatchdog();
         socket.open();
     } catch (err) {
         finish({ kind: "internal", detail: { event: "connect", error: describeError(err) } });
@@ -1068,6 +1107,15 @@ function failureToError(failure, context) {
     }
     if (failure.kind === "noAudio") {
         return makeError("api", MESSAGE_NO_AUDIO, detail);
+    }
+    if (failure.kind === "connectTimeout") {
+        return makeError("network",
+            "连接不上微软语音服务（握手 " + source.openTimeoutSeconds + " 秒内没有完成），请检查网络或代理设置",
+            detail);
+    }
+    if (failure.kind === "stalled") {
+        return makeError("network",
+            "与微软语音服务的连接中断（" + source.idleSeconds + " 秒没有收到数据），请检查网络后重试", detail);
     }
     if (failure.kind === "timeout") {
         return makeError("network",
