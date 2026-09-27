@@ -1,7 +1,7 @@
 # PoC 结论：Bob `$websocket` 直连 Edge「大声朗读」
 
 > 实测日期 2026-09-27。环境：Bob 1.21.0 (260)，macOS 27.0.0，家宽网络。
-> 步骤见 `docs/tasks/01-poc-websocket.md`，验证插件在 `poc/`，原始日志在 `docs/poc-evidence/`。
+> 步骤见 `docs/tasks/01-poc-websocket.md`。验证插件 `poc/`、脚本 `scripts/poc/` 和原始日志 `docs/poc-evidence/` 都在 `poc/edge-tts-websocket` 分支上。
 
 ## 结论
 
