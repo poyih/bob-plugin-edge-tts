@@ -103,22 +103,27 @@ function windowEnd(text, start, maxBytes) {
 }
 
 // 在 [start, end) 里找最合适的切点，返回切点下标（切点之前的内容归前一段）。
-// 优先在后半段的句末 / 换行处切，其次是后半段的逗号 / 空白，再其次是前半段，最后硬切。
+// 切点分三档：换行 > 句末标点 > 逗号 / 空白。先在窗口后半段找最高的一档，找不到再看前半段，
+// 都没有就硬切。换行排在句末标点前面，是为了避免「1. 第一项\n2. 第二项」在编号的句点后
+// 被切开，把下一项的编号读到上一段末尾。
 function findCut(text, start, end) {
     var half = start + Math.floor((end - start) / 2);
+    var line = -1;
     var strong = -1;
     var weak = -1;
 
     for (var i = start; i < end; i++) {
         var ch = text.charAt(i);
+        if (ch === "\n") {
+            line = i + 1;
+            continue;
+        }
         var next = i + 1 < text.length ? text.charAt(i + 1) : "";
         var followedBySpace = next === "" || isWhitespace(next);
         var isStrong = false;
         var isWeak = false;
 
-        if (ch === "\n") {
-            isStrong = true;
-        } else if (SENTENCE_END.indexOf(ch) !== -1) {
+        if (SENTENCE_END.indexOf(ch) !== -1) {
             isStrong = true;
         } else if (ASCII_SENTENCE_END.indexOf(ch) !== -1) {
             isStrong = followedBySpace && !(ch === ";" && endsEntity(text, i));
@@ -139,17 +144,17 @@ function findCut(text, start, end) {
         }
     }
 
-    if (strong > half) {
-        return strong;
+    var candidates = [line, strong, weak];
+    var k;
+    for (k = 0; k < candidates.length; k++) {
+        if (candidates[k] > half) {
+            return candidates[k];
+        }
     }
-    if (weak > half) {
-        return weak;
-    }
-    if (strong > start) {
-        return strong;
-    }
-    if (weak > start) {
-        return weak;
+    for (k = 0; k < candidates.length; k++) {
+        if (candidates[k] > start) {
+            return candidates[k];
+        }
     }
     return -1;
 }

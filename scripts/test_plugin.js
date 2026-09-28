@@ -710,6 +710,13 @@ var XIAOXIAO_FULL = "Microsoft Server Speech Text to Speech Voice (zh-CN, Xiaoxi
         JSON.stringify(["aaaa &amp; bbbb", "&amp; cccc"]), "实体结尾的分号不当作句末标点");
     eq(JSON.stringify(T.splitText("一二三四五六七八九十", 16)),
         JSON.stringify(["一二三四五", "六七八九十"]), "无处可切时按字节上限硬切在字符边界");
+    eq(JSON.stringify(T.splitText("1. First item here\n2. Second item here\n3. Third item here", 22)),
+        JSON.stringify(["1. First item here", "2. Second item here", "3. Third item here"]),
+        "换行优先于句点：有序列表的编号不会被切到上一段末尾");
+    eq(JSON.stringify(T.splitText("第一行内容\n第二。第三。", 27)),
+        JSON.stringify(["第一行内容", "第二。第三。"]), "后半段同时有换行和句号时在换行处切");
+    eq(JSON.stringify(T.splitText("第一句。第二句\n第三句。", 27)),
+        JSON.stringify(["第一句。第二句", "第三句。"]), "换行在后半段时优先于前半段的句号");
 
     // 8. 二进制帧解析
     var audio = fakeAudio(720);
