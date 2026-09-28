@@ -98,6 +98,8 @@ swiftc -O scripts/live/harness.swift -o /tmp/edge-harness
 
 插件逻辑在 `src/main.js`，协议常量和音色表在 `src/config.js`，SHA-256 在 `src/sha256.js`，文本清理与分段在 `src/text.js`。
 
+还没在 Bob 里真机验证过的事项，以及只能在真机上评估的改进（分段并发、HEAD 校时），见 [docs/tasks/03-verify-on-device.md](docs/tasks/03-verify-on-device.md)，可以直接作为一次本地 Claude Code 会话的第一条消息。
+
 ```bash
 make test       # 语法检查 + info.json 校验 + 离线单测（macOS 用 Bob 同款 JavaScriptCore，其他系统自动改用 Node，以 jsc 为准）
 make voices     # 联网核对内置音色是否还在微软的音色列表里
