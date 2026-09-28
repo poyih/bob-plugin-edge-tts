@@ -70,8 +70,17 @@ jobs:
         env:
           TAG: ${{ steps.tag.outputs.tag }}
         run: |
-          subject=$(git tag -l --format='%(contents:subject)' "$TAG")
-          body=$(git tag -l --format='%(contents:body)' "$TAG")
+          # 推送标签触发时，actions/checkout 会把带注释的标签取成指向提交的轻量标签，
+          # 直接读会读到合并提交的标题（v1.2.0 就是这样），先把标签对象强制取回来
+          git fetch --force origin "refs/tags/$TAG:refs/tags/$TAG"
+          if [ "$(git cat-file -t "$TAG")" = "tag" ]; then
+            subject=$(git tag -l --format='%(contents:subject)' "$TAG")
+            body=$(git tag -l --format='%(contents:body)' "$TAG")
+          else
+            echo "::warning::$TAG 不是带注释的标签，更新说明只写版本号；发版请用 git tag -a"
+            subject=""
+            body=""
+          fi
           [ -n "$subject" ] || subject="$TAG"
           {
             echo "$subject"
