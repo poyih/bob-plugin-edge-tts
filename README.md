@@ -8,7 +8,7 @@
 ## 特点
 
 - **按语言自动选音色**：内置 79 种语言的默认音色。简中、繁中、粤语、英、日、韩有单独的菜单，其他语言可以在「按语言指定音色」里写 `fr=fr-FR-HenriNeural` 这样的映射，也可以让一个 Multilingual 音色读所有语言。
-- **长文本自动分段**：按 3000 字节尽量在换行或句末标点处切开，逐段合成后拼成一段 mp3。
+- **长文本合成得快**：按 3000 字节尽量在句末标点处切开，列表编号不会被切到上一段末尾。900 字节以上的文本先单独合成开头一两句，出声后其余各段两路并发，按顺序拼成一段 mp3。在 Bob 里实测，约 1000 字的中文从 6.2 秒降到 3.2 秒，约 3000 字的从 12.5 秒降到 5.9 秒，一句话的短文本不受影响。
 - **系统时间不准也能用**：握手被拒时自动向微软取服务器时间，校准后重新签名再试。
 - **遇到故障自己兜底**：服务端 5xx、中途断开、连上后没数据时换一条连接再试，整次朗读最多两次；选的音色读不了当前语言时自动改用该语言的默认音色。
 - **断网不会卡住**：握手 10 秒没完成、连上后 15 秒收不到数据都有看门狗，整次朗读 55 秒内必有结果。各种失败都有明确提示，见[常见报错](#常见报错)。
@@ -98,7 +98,7 @@ swiftc -O scripts/live/harness.swift -o /tmp/edge-harness
 
 插件逻辑在 `src/main.js`，协议常量和音色表在 `src/config.js`，SHA-256 在 `src/sha256.js`，文本清理与分段在 `src/text.js`。
 
-还没在 Bob 里真机验证过的事项，以及只能在真机上评估的改进（分段并发、HEAD 校时），见 [docs/tasks/03-verify-on-device.md](docs/tasks/03-verify-on-device.md)，可以直接作为一次本地 Claude Code 会话的第一条消息。
+`docs/tasks/` 下的三张任务卡是开发时交给 Claude Code 的指令，都已完成，留作设计记录；真机实测的结论在 [docs/poc-findings.md](docs/poc-findings.md)。要在 Bob 里复现重试、超时这类故障，用 `scripts/live/fake_edge.py` 扮演出故障的服务端，用法见文件开头。
 
 ```bash
 make test       # 语法检查 + info.json 校验 + 离线单测（macOS 用 Bob 同款 JavaScriptCore，其他系统自动改用 Node，以 jsc 为准）
@@ -116,7 +116,7 @@ git tag -a v1.1.0 -m "更新说明" && git push origin v1.1.0
 
 Release 工作流会 `make pack`、创建 `v1.1.0` Release 并上传 `dist/*.bobplugin`，再把 sha256 和下载地址登记进 `appcast.json` 推回 main；标签注释的第一行是 appcast 里的更新说明，全文是 Release 说明。推不了 main 时它会推到 `appcast/v1.1.0` 分支并尝试开 PR。不方便在本地推标签时，也可以在 Actions 页手动运行 Release 工作流并填写更新说明，它会按 `src/info.json` 的版本自己打标签再发版。手动发版仍可按 `make pack` → 创建 Release 上传 `dist/*.bobplugin` → `make appcast DESC="更新说明"` → 提交 `appcast.json` 的顺序做，Release 资产上传之前不要登记 appcast。
 
-Bob 运行时与文档有几处出入：握手头要放在单数的 `header` 里，`$data` 没有 `length`，关闭连接要写 `close({})`，连接失败时没有任何回调，`timeoutInterval` 不起作用。实测记录见 [docs/poc-findings.md](docs/poc-findings.md)。
+Bob 运行时与文档有几处出入：握手头要放在单数的 `header` 里，`$data` 没有 `length`，关闭连接要写 `close({})`，连接失败时没有任何回调，`timeoutInterval` 不起作用，朗读的文本里换行会被换成空格，每次朗读建立的第一条连接收音频比后面的慢三到四倍。实测记录见 [docs/poc-findings.md](docs/poc-findings.md)。
 
 ## 参考
 
