@@ -116,7 +116,7 @@ git tag -a v1.1.0 -m "更新说明" && git push origin v1.1.0
 
 Release 工作流会 `make pack`、创建 `v1.1.0` Release 并上传 `dist/*.bobplugin`，再把 sha256 和下载地址登记进 `appcast.json` 推回 main；标签注释的第一行是 appcast 里的更新说明，全文是 Release 说明。推不了 main 时它会推到 `appcast/v1.1.0` 分支并尝试开 PR。不方便在本地推标签时，也可以在 Actions 页手动运行 Release 工作流并填写更新说明，它会按 `src/info.json` 的版本自己打标签再发版。手动发版仍可按 `make pack` → 创建 Release 上传 `dist/*.bobplugin` → `make appcast DESC="更新说明"` → 提交 `appcast.json` 的顺序做，Release 资产上传之前不要登记 appcast。
 
-Bob 运行时与文档有几处出入：握手头要放在单数的 `header` 里，`$data` 没有 `length`，关闭连接要写 `close({})`，连接失败时没有任何回调，`timeoutInterval` 不起作用，朗读的文本里换行会被换成空格，每次朗读建立的第一条连接收音频比后面的慢三到四倍。实测记录见 [docs/poc-findings.md](docs/poc-findings.md)。
+Bob 运行时与文档有几处出入：握手头要放在单数的 `header` 里，`$data` 没有 `length`，关闭连接要写 `close({})`，连接失败时没有任何回调，`timeoutInterval` 不起作用，朗读的文本里换行会被换成空格，从插件入口建立的 WebSocket 连接收音频比在回调里建立的慢三到四倍。实测记录见 [docs/poc-findings.md](docs/poc-findings.md)。
 
 ## 参考
 

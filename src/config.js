@@ -32,8 +32,9 @@ var MAX_SEGMENT_BYTES = 3000;
 // 以上的文本比逐段串行省一半左右时间，84 次合成没有触发限流，见 docs/poc-findings.md 第 11 节。
 var PARALLEL_SEGMENTS = 2;
 
-// Bob 1.21.0 里，每次朗读建立的第一条连接收音频只有约 240 KB/s，之后在连接回调里建立的连接约
-// 1 MB/s，原因在 Bob 一侧（与文本内容无关，见 docs/poc-findings.md 第 11 节）。文本转义后超过
+// Bob 1.21.0 里，从插件入口（tts、pluginValidate、定时器与 $http 回调）建立的连接收音频只有约
+// 240 KB/s，在 WebSocket 回调里建立的连接约 1 MB/s，与文本内容无关，原因在 Bob 一侧（见
+// docs/poc-findings.md 11.4）。每次朗读的第一条连接必然建在入口里。文本转义后超过
 // FIRST_SEGMENT_TRIGGER_BYTES 字节时，第 1 段只切 FIRST_SEGMENT_BYTES 字节以内的一两句：它很快出声、
 // 放闸，大块内容交给后面走得快的连接。约 2900 字节的文本因此从 6.2 秒降到 3.2 秒。
 var FIRST_SEGMENT_BYTES = 300;
