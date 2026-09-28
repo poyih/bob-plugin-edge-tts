@@ -291,20 +291,28 @@ globalThis.$http = {
 
 // ------------------------------------------------------------ 加载插件
 
-globalThis.exports = {};
-load("src/config.js");
-var config = globalThis.exports;
+// 与 Bob 一样：每个文件各自的 exports，require("./x.js") 拿到已加载模块的 exports
+var modules = {};
 
 globalThis.require = function (path) {
-    if (path === "./config.js" || path === "config.js") {
-        return config;
+    var name = String(path).replace(/^\.\//, "");
+    if (!modules[name]) {
+        throw new Error("未知模块: " + path);
     }
-    throw new Error("未知模块: " + path);
+    return modules[name];
 };
 
-globalThis.exports = {};
-load("src/main.js");
-var plugin = globalThis.exports;
+function loadModule(name) {
+    globalThis.exports = {};
+    load("src/" + name);
+    modules[name] = globalThis.exports;
+    return modules[name];
+}
+
+var config = loadModule("config.js");
+loadModule("sha256.js");
+loadModule("text.js");
+var plugin = loadModule("main.js");
 var T = plugin.__test;
 
 // ------------------------------------------------------------ 协议桩：帧与服务端行为
@@ -631,7 +639,6 @@ var XIAOXIAO_FULL = "Microsoft Server Speech Text to Speech Voice (zh-CN, Xiaoxi
     eq(T.escapeXml("a < b && c > d"), "a &lt; b &amp;&amp; c &gt; d", "& < > 被转义");
     eq(T.escapeXml("&amp;"), "&amp;amp;", "已有的实体字面量会再转义一次，读出来仍是原文");
     eq(T.escapeXml("it's \"ok\""), "it's \"ok\"", "引号在元素内容里不需要转义");
-    eq(T.utf8Length("aé你😀"), 1 + 2 + 3 + 4, "utf8Length 按 1 / 2 / 3 / 4 字节计");
 
     // 7. 分段
     eq(JSON.stringify(T.splitText("你好，世界", 3000)), JSON.stringify(["你好，世界"]), "短文本不分段");

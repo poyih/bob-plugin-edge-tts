@@ -1,4 +1,6 @@
 var config = require("./config.js");
+var sha256 = require("./sha256.js");
+var textUtil = require("./text.js");
 
 var LOG_TAG = "[edge-tts]";
 
@@ -78,121 +80,6 @@ function nowMs() {
     return Date.now();
 }
 
-// ---------------------------------------------------------------- SHA-256
-
-// Bob 的运行时没有 crypto，Sec-MS-GEC 需要的 SHA-256 只能自己算。
-var SHA256_K = [
-    0x428a2f98, 0x71374491, 0xb5c0fbcf, 0xe9b5dba5, 0x3956c25b, 0x59f111f1, 0x923f82a4, 0xab1c5ed5,
-    0xd807aa98, 0x12835b01, 0x243185be, 0x550c7dc3, 0x72be5d74, 0x80deb1fe, 0x9bdc06a7, 0xc19bf174,
-    0xe49b69c1, 0xefbe4786, 0x0fc19dc6, 0x240ca1cc, 0x2de92c6f, 0x4a7484aa, 0x5cb0a9dc, 0x76f988da,
-    0x983e5152, 0xa831c66d, 0xb00327c8, 0xbf597fc7, 0xc6e00bf3, 0xd5a79147, 0x06ca6351, 0x14292967,
-    0x27b70a85, 0x2e1b2138, 0x4d2c6dfc, 0x53380d13, 0x650a7354, 0x766a0abb, 0x81c2c92e, 0x92722c85,
-    0xa2bfe8a1, 0xa81a664b, 0xc24b8b70, 0xc76c51a3, 0xd192e819, 0xd6990624, 0xf40e3585, 0x106aa070,
-    0x19a4c116, 0x1e376c08, 0x2748774c, 0x34b0bcb5, 0x391c0cb3, 0x4ed8aa4a, 0x5b9cca4f, 0x682e6ff3,
-    0x748f82ee, 0x78a5636f, 0x84c87814, 0x8cc70208, 0x90befffa, 0xa4506ceb, 0xbef9a3f7, 0xc67178f2
-];
-
-function utf8Bytes(str) {
-    var bytes = [];
-    for (var i = 0; i < str.length; i++) {
-        var code = str.charCodeAt(i);
-        if (code >= 0xd800 && code <= 0xdbff && i + 1 < str.length) {
-            var next = str.charCodeAt(i + 1);
-            if (next >= 0xdc00 && next <= 0xdfff) {
-                code = 0x10000 + ((code - 0xd800) << 10) + (next - 0xdc00);
-                i += 1;
-            }
-        }
-        if (code < 0x80) {
-            bytes.push(code);
-        } else if (code < 0x800) {
-            bytes.push(0xc0 | (code >> 6), 0x80 | (code & 0x3f));
-        } else if (code < 0x10000) {
-            bytes.push(0xe0 | (code >> 12), 0x80 | ((code >> 6) & 0x3f), 0x80 | (code & 0x3f));
-        } else {
-            bytes.push(0xf0 | (code >> 18), 0x80 | ((code >> 12) & 0x3f),
-                0x80 | ((code >> 6) & 0x3f), 0x80 | (code & 0x3f));
-        }
-    }
-    return bytes;
-}
-
-function rotr(value, bits) {
-    return (value >>> bits) | (value << (32 - bits));
-}
-
-// 输入按 UTF-8 编码，输出小写 hex
-function sha256Hex(message) {
-    var bytes = utf8Bytes(String(message));
-    var bitLength = bytes.length * 8;
-    var i;
-
-    bytes.push(0x80);
-    while (bytes.length % 64 !== 56) {
-        bytes.push(0);
-    }
-    var high = Math.floor(bitLength / 0x100000000);
-    var low = bitLength >>> 0;
-    bytes.push((high >>> 24) & 0xff, (high >>> 16) & 0xff, (high >>> 8) & 0xff, high & 0xff);
-    bytes.push((low >>> 24) & 0xff, (low >>> 16) & 0xff, (low >>> 8) & 0xff, low & 0xff);
-
-    var h = [0x6a09e667, 0xbb67ae85, 0x3c6ef372, 0xa54ff53a, 0x510e527f, 0x9b05688c, 0x1f83d9ab, 0x5be0cd19];
-    var w = new Array(64);
-
-    for (var offset = 0; offset < bytes.length; offset += 64) {
-        for (i = 0; i < 16; i++) {
-            var p = offset + i * 4;
-            w[i] = ((bytes[p] << 24) | (bytes[p + 1] << 16) | (bytes[p + 2] << 8) | bytes[p + 3]) >>> 0;
-        }
-        for (i = 16; i < 64; i++) {
-            var s0 = rotr(w[i - 15], 7) ^ rotr(w[i - 15], 18) ^ (w[i - 15] >>> 3);
-            var s1 = rotr(w[i - 2], 17) ^ rotr(w[i - 2], 19) ^ (w[i - 2] >>> 10);
-            w[i] = (w[i - 16] + s0 + w[i - 7] + s1) >>> 0;
-        }
-
-        var a = h[0];
-        var b = h[1];
-        var c = h[2];
-        var d = h[3];
-        var e = h[4];
-        var f = h[5];
-        var g = h[6];
-        var hh = h[7];
-
-        for (i = 0; i < 64; i++) {
-            var sum1 = rotr(e, 6) ^ rotr(e, 11) ^ rotr(e, 25);
-            var choice = (e & f) ^ (~e & g);
-            var t1 = (hh + sum1 + choice + SHA256_K[i] + w[i]) >>> 0;
-            var sum0 = rotr(a, 2) ^ rotr(a, 13) ^ rotr(a, 22);
-            var majority = (a & b) ^ (a & c) ^ (b & c);
-            var t2 = (sum0 + majority) >>> 0;
-            hh = g;
-            g = f;
-            f = e;
-            e = (d + t1) >>> 0;
-            d = c;
-            c = b;
-            b = a;
-            a = (t1 + t2) >>> 0;
-        }
-
-        h[0] = (h[0] + a) >>> 0;
-        h[1] = (h[1] + b) >>> 0;
-        h[2] = (h[2] + c) >>> 0;
-        h[3] = (h[3] + d) >>> 0;
-        h[4] = (h[4] + e) >>> 0;
-        h[5] = (h[5] + f) >>> 0;
-        h[6] = (h[6] + g) >>> 0;
-        h[7] = (h[7] + hh) >>> 0;
-    }
-
-    var hex = "";
-    for (i = 0; i < 8; i++) {
-        hex += ("00000000" + h[i].toString(16)).slice(-8);
-    }
-    return hex;
-}
-
 // ---------------------------------------------------------------- 签名与握手参数
 
 // Sec-MS-GEC 的待哈希字串：FILETIME 刻度（100 纳秒）向下取整到 5 分钟，再拼 TrustedClientToken。
@@ -204,7 +91,7 @@ function gecPayload(unixSeconds) {
 }
 
 function secMsGec(unixSeconds) {
-    return sha256Hex(gecPayload(unixSeconds)).toUpperCase();
+    return sha256.sha256Hex(gecPayload(unixSeconds)).toUpperCase();
 }
 
 function randomHex(length, upper) {
@@ -287,215 +174,6 @@ function buildSsmlMessage(ms, voiceName, prosody, escapedText) {
         "X-Timestamp:" + timestampString(ms) + "Z\r\n" +
         "Path:ssml\r\n\r\n" +
         buildSsml(voiceName, prosody, escapedText);
-}
-
-// ---------------------------------------------------------------- 文本处理
-
-// 服务端遇到这些控制字符会报错（OCR 出来的 PDF 里常见垂直制表符），统一换成空格。
-// 落单的代理项和 U+FFFE / U+FFFF 不是合法的 XML 字符，同样处理。
-function cleanText(text) {
-    var str = String(text === undefined || text === null ? "" : text)
-        .replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f￾￿]/g, " ");
-    if (!/[\ud800-\udfff]/.test(str)) {
-        return str;
-    }
-    var out = "";
-    for (var i = 0; i < str.length; i++) {
-        var code = str.charCodeAt(i);
-        if (code >= 0xd800 && code <= 0xdbff) {
-            var next = i + 1 < str.length ? str.charCodeAt(i + 1) : 0;
-            if (next >= 0xdc00 && next <= 0xdfff) {
-                out += str.charAt(i) + str.charAt(i + 1);
-                i += 1;
-            } else {
-                out += " ";
-            }
-        } else if (code >= 0xdc00 && code <= 0xdfff) {
-            out += " ";
-        } else {
-            out += str.charAt(i);
-        }
-    }
-    return out;
-}
-
-function escapeXml(text) {
-    return String(text).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-}
-
-function utf8Length(str) {
-    var total = 0;
-    for (var i = 0; i < str.length; i++) {
-        var code = str.charCodeAt(i);
-        if (code < 0x80) {
-            total += 1;
-        } else if (code < 0x800) {
-            total += 2;
-        } else if (code >= 0xd800 && code <= 0xdbff && i + 1 < str.length &&
-            str.charCodeAt(i + 1) >= 0xdc00 && str.charCodeAt(i + 1) <= 0xdfff) {
-            total += 4;
-            i += 1;
-        } else {
-            total += 3;
-        }
-    }
-    return total;
-}
-
-// 句末标点：中日文句号叹号问号、分号、省略号、印地语 danda、阿拉伯语问号与句号
-var SENTENCE_END = "。！？；…।؟۔";
-// 句中停顿：中日文逗号顿号冒号、阿拉伯语逗号与分号
-var CLAUSE_BREAK = "，、：،؛";
-// 半角标点只有后面跟着空白（或正好在文本末尾）才算断句点，免得把 3.14、1,000 切开
-var ASCII_SENTENCE_END = ".!?;";
-var ASCII_CLAUSE_BREAK = ",:";
-// 紧跟在句末标点后面的引号和括号留在前一段
-var CLOSERS = "”’」』）】》〉\"')]}";
-
-function isWhitespace(ch) {
-    return ch === " " || ch === "\t" || ch === "\n" || ch === "\r" || ch === "　" || ch === " ";
-}
-
-// text[index] 是分号时，判断它是不是 &amp; 这类实体的结尾
-function endsEntity(text, index) {
-    for (var i = index - 1; i >= 0 && index - i <= 6; i--) {
-        var ch = text.charAt(i);
-        if (ch === "&") {
-            return i < index - 1;
-        }
-        if (!/[A-Za-z0-9#]/.test(ch)) {
-            return false;
-        }
-    }
-    return false;
-}
-
-// 硬切（窗口里找不到标点和空白）时，切点不能落在 &amp; 这类实体中间
-function avoidEntitySplit(text, start, cut) {
-    for (var i = cut - 1; i >= start && cut - i <= 6; i--) {
-        var ch = text.charAt(i);
-        if (ch === ";") {
-            return cut;
-        }
-        if (ch === "&") {
-            return i;
-        }
-    }
-    return cut;
-}
-
-// 从 start 起最多能放进 maxBytes 字节的位置（不含），按码点前进，不会切开代理对
-function windowEnd(text, start, maxBytes) {
-    var bytes = 0;
-    var i = start;
-    while (i < text.length) {
-        var code = text.charCodeAt(i);
-        var size = 3;
-        var units = 1;
-        if (code < 0x80) {
-            size = 1;
-        } else if (code < 0x800) {
-            size = 2;
-        } else if (code >= 0xd800 && code <= 0xdbff && i + 1 < text.length &&
-            text.charCodeAt(i + 1) >= 0xdc00 && text.charCodeAt(i + 1) <= 0xdfff) {
-            size = 4;
-            units = 2;
-        }
-        if (bytes + size > maxBytes) {
-            break;
-        }
-        bytes += size;
-        i += units;
-    }
-    return i;
-}
-
-// 在 [start, end) 里找最合适的切点，返回切点下标（切点之前的内容归前一段）。
-// 优先在后半段的句末 / 换行处切，其次是后半段的逗号 / 空白，再其次是前半段，最后硬切。
-function findCut(text, start, end) {
-    var half = start + Math.floor((end - start) / 2);
-    var strong = -1;
-    var weak = -1;
-
-    for (var i = start; i < end; i++) {
-        var ch = text.charAt(i);
-        var next = i + 1 < text.length ? text.charAt(i + 1) : "";
-        var followedBySpace = next === "" || isWhitespace(next);
-        var isStrong = false;
-        var isWeak = false;
-
-        if (ch === "\n") {
-            isStrong = true;
-        } else if (SENTENCE_END.indexOf(ch) !== -1) {
-            isStrong = true;
-        } else if (ASCII_SENTENCE_END.indexOf(ch) !== -1) {
-            isStrong = followedBySpace && !(ch === ";" && endsEntity(text, i));
-        } else if (CLAUSE_BREAK.indexOf(ch) !== -1 || isWhitespace(ch)) {
-            isWeak = true;
-        } else if (ASCII_CLAUSE_BREAK.indexOf(ch) !== -1) {
-            isWeak = followedBySpace;
-        }
-
-        if (isStrong) {
-            var after = i + 1;
-            while (after < end && CLOSERS.indexOf(text.charAt(after)) !== -1) {
-                after += 1;
-            }
-            strong = after;
-        } else if (isWeak) {
-            weak = i + 1;
-        }
-    }
-
-    if (strong > half) {
-        return strong;
-    }
-    if (weak > half) {
-        return weak;
-    }
-    if (strong > start) {
-        return strong;
-    }
-    if (weak > start) {
-        return weak;
-    }
-    return -1;
-}
-
-// 把（已转义的）文本切成若干段，每段 UTF-8 字节数不超过 maxBytes。
-// 不会切开多字节字符，也不会切开 XML 实体。
-function splitText(text, maxBytes) {
-    var limit = Math.max(16, Math.floor(Number(maxBytes) || config.MAX_SEGMENT_BYTES));
-    var source = String(text);
-    var segments = [];
-    var start = 0;
-
-    while (start < source.length) {
-        var end = windowEnd(source, start, limit);
-        var cut;
-        if (end >= source.length) {
-            cut = source.length;
-        } else {
-            cut = findCut(source, start, end);
-            if (cut <= start) {
-                cut = avoidEntitySplit(source, start, end);
-            }
-            if (cut <= start) {
-                cut = end > start ? end : start + 1;
-            }
-        }
-        var piece = source.slice(start, cut).trim();
-        if (piece) {
-            segments.push(piece);
-        }
-        start = cut;
-    }
-    return segments;
-}
-
-// 清理控制字符 -> XML 转义 -> 分段。必须先转义再分段：字节上限针对的是实际发出去的内容。
-function prepareSegments(text) {
-    return splitText(escapeXml(cleanText(text)), config.MAX_SEGMENT_BYTES);
 }
 
 // ---------------------------------------------------------------- 音色与韵律
@@ -1208,7 +886,7 @@ function synthesize(request, callback) {
         return;
     }
 
-    var segments = prepareSegments(request.text);
+    var segments = textUtil.prepareSegments(request.text);
     if (!segments.length) {
         callback(makeError("param", "没有可朗读的文本", { chars: String(request.text || "").length }));
         return;
@@ -1374,7 +1052,7 @@ exports.tts = tts;
 
 // 仅供 scripts/test_plugin.js 做单元测试，Bob 不会用到
 exports.__test = {
-    sha256Hex: sha256Hex,
+    sha256Hex: sha256.sha256Hex,
     gecPayload: gecPayload,
     secMsGec: secMsGec,
     connectionId: connectionId,
@@ -1385,11 +1063,10 @@ exports.__test = {
     buildConfigMessage: buildConfigMessage,
     buildSsml: buildSsml,
     buildSsmlMessage: buildSsmlMessage,
-    cleanText: cleanText,
-    escapeXml: escapeXml,
-    utf8Length: utf8Length,
-    splitText: splitText,
-    prepareSegments: prepareSegments,
+    cleanText: textUtil.cleanText,
+    escapeXml: textUtil.escapeXml,
+    splitText: textUtil.splitText,
+    prepareSegments: textUtil.prepareSegments,
     isValidVoice: isValidVoice,
     toVoiceName: toVoiceName,
     resolveVoice: resolveVoice,
