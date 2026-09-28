@@ -721,6 +721,32 @@ var XIAOXIAO_FULL = "Microsoft Server Speech Text to Speech Voice (zh-CN, Xiaoxi
     eq(JSON.stringify(T.splitText("第一句。第二句\n第三句。", 27)),
         JSON.stringify(["第一句。第二句", "第三句。"]), "换行在后半段时优先于前半段的句号");
 
+    // Bob 会把换行换成空格：编号列表到插件这里是「……大家。 30. 第30条……」，编号的句点不能当句末
+    var bobItems = ["确认本组的测试结果", "更新进度表里的负责人", "检查发布说明的措辞", "核对安装包的校验和", "整理用户反馈的问题"];
+    var bobList = [];
+    for (i = 1; i <= 45; i++) {
+        bobList.push(i + ". 第" + i + "条：请在周五下班前" + bobItems[i % 5] + "，有问题及时同步给大家。");
+    }
+    var listOk = true;
+    for (var pad = 0; pad <= 40; pad++) {
+        var listSegs = T.splitText(T.escapeXml((pad ? repeat("这", pad) + "。 " : "") + bobList.join(" ")), 3000);
+        if (listSegs.length < 2 || listSegs.slice(0, -1).some(function (seg) { return /\d\.$/.test(seg); }) ||
+            listSegs.slice(1).some(function (seg) { return !/^\d{1,3}\. 第/.test(seg); })) {
+            listOk = false;
+            print("      反例 pad=" + pad + " " + JSON.stringify(listSegs.map(function (seg) { return seg.slice(-6); })));
+            break;
+        }
+    }
+    ok(listOk, "换行被换成空格的编号列表：41 种对齐下编号都留在下一段开头");
+    eq(JSON.stringify(T.splitText("1. 第一条。 2. 第二条。 3. 第三条。", 30)),
+        JSON.stringify(["1. 第一条。", "2. 第二条。", "3. 第三条。"]), "编号前面是切点，编号后面的空白不是");
+    eq(JSON.stringify(T.splitText("要点如下： 1. First item. 2. Second item.", 36)),
+        JSON.stringify(["要点如下： 1. First item.", "2. Second item."]), "冒号和英文句号后面的编号也认得出");
+    eq(JSON.stringify(T.splitText("The total was 31. Then we left early", 24)),
+        JSON.stringify(["The total was 31.", "Then we left early"]), "句中的数字加句点仍是句末");
+    eq(JSON.stringify(T.splitText("Released in 2024. Then we left early", 24)),
+        JSON.stringify(["Released in 2024.", "Then we left early"]), "四位数字不是编号");
+
     // 8. 二进制帧解析
     var audio = fakeAudio(720);
     var frame = T.parseBinaryFrame(binaryFrame(AUDIO_HEADER, audio));
