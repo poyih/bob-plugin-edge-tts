@@ -2,6 +2,14 @@
   "identifier": "com.poyih.bob.plugin.edge.tts",
   "versions": [
     {
+      "version": "1.2.0",
+      "desc": "Merge pull request #7 from poyih/claude/nice-mccarthy-c1u926",
+      "sha256": "ad600bd3eb8c644888a92b34819b63ccd079628293a34b33f651bcb60d6bfd8f",
+      "url": "https://github.com/poyih/bob-plugin-edge-tts/releases/download/v1.2.0/bob-plugin-edge-tts-1.2.0.bobplugin",
+      "minBobVersion": "1.8.0",
+      "timestamp": 1790575172498
+    },
+    {
       "version": "1.1.0",
       "desc": "瞬时故障自动重试，音色读不了当前语言时自动回退，新增「按语言指定音色」",
       "sha256": "fb2f49bf2b6b9e4ceed7708582cbb6c8b2ad9eab3e7e094344e5b7ee226408ea",
