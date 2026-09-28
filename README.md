@@ -80,7 +80,7 @@ Bob 报「获取音频失败」而日志里没有 `edge-tts`，说明 Bob 识别
 uvx edge-tts --voice zh-CN-XiaoxiaoNeural --text "你好" --write-media /tmp/edge.mp3
 ```
 
-edge-tts 也失败，说明微软改了校验：等上游修复后，把它 `src/edge_tts/constants.py` 里的浏览器版本号、请求头和端点同步到 `src/config.js`，协议常量都集中在这一个文件里。
+edge-tts 也失败，说明微软改了校验：等上游修复后运行 `make upstream`，它会把上游 `src/edge_tts/constants.py` 里的浏览器版本号、端点和握手头与 `src/config.js` 逐项对照，把列出来的不一致项改掉即可，协议常量都集中在这一个文件里。仓库的定时任务每周一也会自动对照一次并核对音色列表，有出入就开一个带 `upstream-drift` 标签的 issue。GitHub 会停用 60 天没有提交的仓库的定时任务，需要到 Actions 页手动重新启用。
 
 edge-tts 正常而插件失败，用联网冒烟测试宿主看插件卡在哪一步：
 
@@ -99,6 +99,7 @@ swiftc -O scripts/live/harness.swift -o /tmp/edge-harness
 ```bash
 make test       # 语法检查 + info.json 校验 + 离线单测（用 Bob 同款 JavaScriptCore）
 make voices     # 联网核对内置音色是否还在微软的音色列表里
+make upstream   # 联网对照上游 edge-tts 的协议常量，看 config.js 有没有落后
 make pack       # 打包到 dist/，并打印 sha256
 make install    # 打包并交给 Bob 安装
 ```

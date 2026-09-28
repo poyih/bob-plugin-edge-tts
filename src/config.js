@@ -2,8 +2,8 @@
 //
 // 这是 Edge 浏览器的内部接口，不是公开 API，微软每隔几个月就会收紧一次校验。
 // 协议常量取自 rany2/edge-tts 7.2.8（master 4bdb8e4，2026-03-22）的
-// src/edge_tts/constants.py，只参考协议事实。接口失效时先看上游有没有更新
-// CHROMIUM_FULL_VERSION 与请求头，跟着改这一个文件即可。
+// src/edge_tts/constants.py，只参考协议事实。接口失效时运行 make upstream 逐项对照
+// 上游的最新值，跟着改这一个文件即可。
 
 var TRUSTED_CLIENT_TOKEN = "6A5AA1D4EAFF4E9FB37E23D68491D6F4";
 var CHROMIUM_FULL_VERSION = "143.0.3650.75";
