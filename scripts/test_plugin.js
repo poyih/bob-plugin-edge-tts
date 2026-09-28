@@ -981,6 +981,10 @@ var XIAOXIAO_FULL = "Microsoft Server Speech Text to Speech Voice (zh-CN, Xiaoxi
     r = speak(ZH);
     ok(r.length === 1 && r[0].result && r[0].result.raw.bytes === 500, "$data 只有 toHex 时也能正确取出音频");
 
+    // 16 到 30 测的是分段拼接、预算、重试与并发调度，和首段切短无关：先关掉它，第 31 节再单独测
+    var savedFirstBytes = config.FIRST_SEGMENT_BYTES;
+    config.FIRST_SEGMENT_BYTES = 0;
+
     // 16. 状态机：分段合成与拼接
     reset();
     var first = fakeAudio(2000);
@@ -1495,6 +1499,197 @@ var XIAOXIAO_FULL = "Microsoft Server Speech Text to Speech Voice (zh-CN, Xiaoxi
     ok(r.length === 1 && r[0].result === false && sockets.length === 2 &&
         sockets.every(function (sock) { return ssmlOf(sock).indexOf("(en-US, AriaNeural)") > 0; }),
         "pluginValidate 无音频时不回退到别的音色，验证的就是用户选的音色");
+
+    // 30. 分段并发：第 1 段出声之后，后面的段最多 PARALLEL_SEGMENTS 段同时在途，按段序拼接
+    eq(config.PARALLEL_SEGMENTS, 2, "分段并发数默认 2");
+    var parSegs = T.prepareSegments(paragraph);
+    eq(parSegs.length, 3, "并发用例的文本切成 3 段");
+    function readsSegment(sock, n) {
+        return ssmlOf(sock).indexOf(">" + parSegs[n] + "</prosody>") > 0;
+    }
+    reset();
+    socketScripts.push(openOnlyScript, openOnlyScript, openOnlyScript);
+    r = speak({ text: paragraph, lang: "zh-Hans" });
+    ok(r.length === 0 && sockets.length === 1 && readsSegment(sockets[0], 0), "并发：第 1 段还没出声时只建一条连接");
+    sockets[0].fireText(textFrame("turn.start"));
+    sockets[0].fireText(textFrame("response"));
+    eq(sockets.length, 1, "并发：turn.start / response 不算出声");
+    var parA = fakeAudio(1440);
+    var parB = fakeAudio(900);
+    var parC = fakeAudio(333);
+    sockets[0].fireData(makeData(binaryFrame(AUDIO_HEADER, parA.slice(0, 720))));
+    ok(sockets.length === 2 && sockets[1].openCalls === 1 && readsSegment(sockets[1], 1),
+        "并发：第 1 段收到第一帧音频后立刻启动第 2 段");
+    sockets[1].fireData(makeData(binaryFrame(AUDIO_HEADER, parB)));
+    sockets[1].fireText(textFrame("turn.end"));
+    ok(r.length === 0 && sockets.length === 2, "并发：第 2 段先完成也要等第 1 段拼完才启动第 3 段，内存里最多压 2 段");
+    ok(sockets[1].closeCalls === 1 && T.activeSocketCount() === 1, "并发：先完成的连接立即关闭");
+    sockets[0].fireData(makeData(binaryFrame(AUDIO_HEADER, parA.slice(720))));
+    sockets[0].fireText(textFrame("turn.end"));
+    ok(r.length === 0 && sockets.length === 3 && readsSegment(sockets[2], 2), "并发：第 1 段拼完后启动第 3 段");
+    sockets[2].fireData(makeData(binaryFrame(AUDIO_HEADER, parC)));
+    sockets[2].fireText(textFrame("turn.end"));
+    ok(r.length === 1 && r[0].result && r[0].result.value === base64(parA.concat(parB, parC)) &&
+        r[0].result.raw.segments === 3, "并发：乱序完成的段仍按段序拼接");
+    ok(T.activeSocketCount() === 0 && activeTimers() === 0 &&
+        sockets.every(function (sock) { return sock.closeCalls === 1; }), "并发：结束后连接与定时器都已清理");
+
+    // 一段最终失败：取消其余在途的连接，只报一次错
+    reset();
+    socketScripts.push(openOnlyScript, openOnlyScript);
+    r = speak({ text: paragraph, lang: "zh-Hans" });
+    sockets[0].fireData(makeData(binaryFrame(AUDIO_HEADER, fakeAudio(720))));
+    sockets[1].fireClose(1007, "Unsupported voice zh-CN-XiaoxiaoNeural.");
+    ok(r.length === 1 && r[0].error && r[0].error.type === "param" && r[0].error.addtion.segment === 2,
+        "并发：第 2 段失败时整次朗读报一次错，指出是第 2 段");
+    ok(sockets[0].closeCalls === 1 && T.activeSocketCount() === 0 && activeTimers() === 0,
+        "并发：还在合成的第 1 段被取消，连接与定时器都清理掉");
+    sockets[0].fireData(makeData(binaryFrame(AUDIO_HEADER, fakeAudio(720))));
+    sockets[0].fireText(textFrame("turn.end"));
+    sockets[0].fireClose(1000, "");
+    ok(r.length === 1 && sockets.length === 2, "并发：取消之后迟到的帧与 turn.end 被忽略，不再启动新的段");
+    ok(loggedLine("failed type=param") && loggedLine("segment=2/3"), "并发：failed 日志写明失败的是第几段");
+
+    // 第 1 段在 open() 里同步出声、第 2 段随即同步失败：第 1 段的连接还没登记也要被取消
+    reset();
+    socketScripts.push(function (socket) {
+        socket.fireOpen();
+        socket.fireData(makeData(binaryFrame(AUDIO_HEADER, fakeAudio(720))));
+    }, closeScript(1007, "Unsupported voice zh-CN-XiaoxiaoNeural."));
+    r = speak({ text: paragraph, lang: "zh-Hans" });
+    ok(r.length === 1 && r[0].error && r[0].error.addtion.segment === 2 && sockets.length === 2 &&
+        sockets[0].closeCalls === 1 && T.activeSocketCount() === 0 && activeTimers() === 0,
+        "并发：失败发生在第 1 段的连接登记之前，登记时也会被取消");
+
+    // 第 1 段没出声之前的兜底都在第 1 段上做完：换音色
+    reset({ voiceMode: "global", globalVoice: "en-US-AriaNeural" });
+    socketScripts.push(noAudioScript, openOnlyScript, openOnlyScript);
+    r = speak({ text: paragraph, lang: "zh-Hans" });
+    ok(r.length === 0 && sockets.length === 2 && readsSegment(sockets[1], 0) && ssmlOf(sockets[1]).indexOf(XIAOXIAO_FULL) > 0,
+        "并发：第 1 段无音频时先在第 1 段换成默认音色，不启动后面的段");
+    sockets[1].fireData(makeData(binaryFrame(AUDIO_HEADER, fakeAudio(720))));
+    ok(sockets.length === 3 && readsSegment(sockets[2], 1) && ssmlOf(sockets[2]).indexOf(XIAOXIAO_FULL) > 0,
+        "并发：换音色后第 1 段出声，第 2 段直接用回退音色");
+    sockets[2].fireClose(1007, "Unsupported voice x");
+    ok(r.length === 1 && r[0].error && T.activeSocketCount() === 0 && activeTimers() === 0, "并发：收尾时连接全部关闭");
+
+    // 第 1 段没出声之前的兜底都在第 1 段上做完：校时重签
+    reset();
+    socketScripts.push(rejectScript, openOnlyScript, openOnlyScript);
+    httpResponder = httpDateResponder("Date");
+    r = speak({ text: paragraph, lang: "zh-Hans" });
+    ok(r.length === 0 && sockets.length === 2 && httpRequests.length === 1 && readsSegment(sockets[1], 0),
+        "并发：第 1 段握手被拒时先校时重签第 1 段，不启动后面的段");
+    sockets[1].fireData(makeData(binaryFrame(AUDIO_HEADER, fakeAudio(720))));
+    ok(sockets.length === 3 && readsSegment(sockets[2], 1) && httpRequests.length === 1, "并发：重签后第 1 段出声才启动第 2 段");
+    sockets[2].fireClose(1007, "Unsupported voice x");
+    ok(r.length === 1 && T.activeSocketCount() === 0 && activeTimers() === 0, "并发：收尾时连接全部关闭");
+
+    // 重试次数在各段之间共用：第 2 段用掉一次，第 3 段再失败两次就没得重试了
+    reset();
+    socketScripts.push(successScript(fakeAudio(720), 720), closeScript(1011, "Internal server error"),
+        successScript(fakeAudio(720), 720), closeScript(1011, "Internal server error"),
+        closeScript(1011, "Internal server error"), successScript(fakeAudio(720), 720));
+    r = speak({ text: paragraph, lang: "zh-Hans" });
+    ok(r.length === 1 && r[0].error && r[0].error.addtion.kind === "closed" && r[0].error.addtion.segment === 3 &&
+        r[0].error.addtion.retries === 2 && sockets.length === 5, "并发：瞬时故障的重试次数在各段之间共用，总共两次");
+    ok(T.activeSocketCount() === 0 && activeTimers() === 0, "并发：重试用完报错后连接全部关闭");
+
+    // 并发数设为 1：逐段串行
+    config.PARALLEL_SEGMENTS = 1;
+    reset();
+    socketScripts.push(openOnlyScript, openOnlyScript);
+    r = speak({ text: paragraph, lang: "zh-Hans" });
+    sockets[0].fireData(makeData(binaryFrame(AUDIO_HEADER, fakeAudio(720))));
+    var serialWaited = sockets.length === 1;
+    sockets[0].fireText(textFrame("turn.end"));
+    var serialNext = sockets.length === 2 && readsSegment(sockets[1], 1);
+    sockets[1].fireClose(1007, "Unsupported voice x");
+    config.PARALLEL_SEGMENTS = 2;
+    ok(serialWaited && serialNext, "并发数设为 1 时逐段串行：第 1 段结束才启动第 2 段");
+
+    // 并发数设为 3：第 1 段出声后其余两段一起启动
+    config.PARALLEL_SEGMENTS = 3;
+    reset();
+    socketScripts.push(openOnlyScript, openOnlyScript, openOnlyScript);
+    r = speak({ text: paragraph, lang: "zh-Hans" });
+    sockets[0].fireData(makeData(binaryFrame(AUDIO_HEADER, fakeAudio(720))));
+    var threeWay = sockets.length === 3 && readsSegment(sockets[1], 1) && readsSegment(sockets[2], 2);
+    sockets[1].fireClose(1007, "Unsupported voice x");
+    config.PARALLEL_SEGMENTS = 2;
+    ok(threeWay && r.length === 1 && T.activeSocketCount() === 0, "并发数设为 3 时第 1 段出声后其余两段一起启动");
+
+    // 并发数写错时按 1 处理
+    config.PARALLEL_SEGMENTS = "abc";
+    reset();
+    socketScripts.push(openOnlyScript, openOnlyScript);
+    r = speak({ text: paragraph, lang: "zh-Hans" });
+    sockets[0].fireData(makeData(binaryFrame(AUDIO_HEADER, fakeAudio(720))));
+    var badSerial = sockets.length === 1;
+    sockets[0].fireClose(1007, "Unsupported voice x");
+    config.PARALLEL_SEGMENTS = 2;
+    ok(badSerial && r.length === 1 && T.activeSocketCount() === 0, "并发数不是正数时按串行处理");
+
+    // 31. 首段切短：长文本的第 1 段只切 300 字节以内，让它尽快出声，大块内容交给后面的连接
+    config.FIRST_SEGMENT_BYTES = savedFirstBytes;
+    eq(config.FIRST_SEGMENT_BYTES, 300, "首段上限 300 字节");
+    eq(config.FIRST_SEGMENT_TRIGGER_BYTES, 900, "转义后超过 900 字节才切短首段");
+    var sentences = repeat("这是一句用来测试首段切短的中文句子，长度适中。", 60);
+    var cut = T.prepareSegments(sentences);
+    ok(utf8Bytes(sentences).length > 3000 && cut.length >= 3, "长文本切出首段后仍按 3000 字节分段");
+    ok(utf8Bytes(cut[0]).length <= 300 && utf8Bytes(cut[0]).length > 150 && /。$/.test(cut[0]),
+        "首段不超过 300 字节，落在后半窗口的句号处");
+    ok(cut.slice(1).every(function (seg) { return utf8Bytes(seg).length <= 3000; }), "其余各段不超过 3000 字节");
+    eq(stripSpace(cut.join("")), stripSpace(sentences), "切短首段不丢内容");
+    var medium = repeat("中等长度的一句话。", 30);
+    ok(utf8Bytes(medium).length > 300 && utf8Bytes(medium).length <= 900 && T.prepareSegments(medium).length === 1,
+        "不到 900 字节的文本不切短，还是一段");
+    var justOver = repeat("刚过门槛的一句话。", 34);
+    var justOverSegs = T.prepareSegments(justOver);
+    ok(utf8Bytes(justOver).length > 900 && justOverSegs.length === 2 && utf8Bytes(justOverSegs[0]).length <= 300,
+        "刚超过 900 字节就切成短首段加其余部分");
+    var english = repeat("This sentence is here to test how the first segment is cut. ", 30);
+    var englishSegs = T.prepareSegments(english);
+    ok(englishSegs.length >= 2 && utf8Bytes(englishSegs[0]).length <= 300 && /\.$/.test(englishSegs[0]),
+        "英文长文本的首段也落在句号处");
+    var threshold = repeat("门", 300);
+    ok(utf8Bytes(threshold).length === 900 && T.prepareSegments(threshold).length === 1, "正好 900 字节不切短");
+    ok(T.prepareSegments(threshold + "门").length === 2, "901 字节开始切短");
+    eq(JSON.stringify(T.splitText("第一句。第二句。第三句。第四句。", 3000, 20)),
+        JSON.stringify(["第一句。", "第二句。第三句。第四句。"]), "splitText 的首段上限只作用于第 1 段");
+    eq(JSON.stringify(T.splitText("第一句。第二句。", 3000)), JSON.stringify(["第一句。第二句。"]), "不给首段上限时行为不变");
+    config.FIRST_SEGMENT_BYTES = 0;
+    eq(T.prepareSegments(sentences).length, T.splitText(T.escapeXml(sentences), 3000).length, "首段上限设为 0 时不切短");
+    config.FIRST_SEGMENT_BYTES = savedFirstBytes;
+
+    // 默认配置下的完整流程：短首段先出声放闸，第 2 段随即开始，按段序拼接
+    reset();
+    var firstSegs = T.prepareSegments(paragraph);
+    ok(firstSegs.length === 4 && utf8Bytes(firstSegs[0]).length <= 300, "3 段的长文本切成短首段加 3 段");
+    var firstScripts = [openOnlyScript, openOnlyScript, openOnlyScript, openOnlyScript];
+    firstScripts.forEach(function (f) { socketScripts.push(f); });
+    r = speak({ text: paragraph, lang: "zh-Hans" });
+    ok(sockets.length === 1 && ssmlOf(sockets[0]).indexOf(">" + firstSegs[0] + "</prosody>") > 0, "第 1 条连接只读短首段");
+    var fa = fakeAudio(300);
+    var fb = fakeAudio(1440);
+    var fc = fakeAudio(1440);
+    var fd = fakeAudio(500);
+    sockets[0].fireData(makeData(binaryFrame(AUDIO_HEADER, fa)));
+    ok(sockets.length === 2 && ssmlOf(sockets[1]).indexOf(">" + firstSegs[1] + "</prosody>") > 0, "短首段出声后第 2 段立刻开始");
+    sockets[0].fireText(textFrame("turn.end"));
+    ok(r.length === 0 && sockets.length === 3 && ssmlOf(sockets[2]).indexOf(">" + firstSegs[2] + "</prosody>") > 0,
+        "短首段读完、拼好后第 3 段开始，同时在途两条");
+    sockets[2].fireData(makeData(binaryFrame(AUDIO_HEADER, fc)));
+    sockets[2].fireText(textFrame("turn.end"));
+    eq(sockets.length, 3, "第 3 段先完成也要等第 2 段拼完");
+    sockets[1].fireData(makeData(binaryFrame(AUDIO_HEADER, fb)));
+    sockets[1].fireText(textFrame("turn.end"));
+    ok(sockets.length === 4 && ssmlOf(sockets[3]).indexOf(">" + firstSegs[3] + "</prosody>") > 0, "第 2 段拼完后第 4 段开始");
+    sockets[3].fireData(makeData(binaryFrame(AUDIO_HEADER, fd)));
+    sockets[3].fireText(textFrame("turn.end"));
+    ok(r.length === 1 && r[0].result && r[0].result.value === base64(fa.concat(fb, fc, fd)) && r[0].result.raw.segments === 4,
+        "短首段与其余各段按顺序拼成一段音频");
+    ok(T.activeSocketCount() === 0 && activeTimers() === 0, "结束后连接与定时器都已清理");
 
     print("");
     if (failures.length === 0) {

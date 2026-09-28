@@ -27,6 +27,18 @@ var OUTPUT_FORMAT = "audio-24khz-48kbitrate-mono-mp3";
 // 单条 ssml 消息里文本（转义后）的 UTF-8 字节上限。上游用 4096，这里留出余量。
 var MAX_SEGMENT_BYTES = 3000;
 
+// 长文本分段合成的并发数。第 1 段收到第一帧音频（签名和音色都没问题）之后，后面的段最多这么多段
+// 同时在途，按段序拼接；1 就是逐段串行。配合下面的首段切短，2026-09-28 在 Bob 里实测，约 1000 字
+// 以上的文本比逐段串行省一半左右时间，84 次合成没有触发限流，见 docs/poc-findings.md 第 11 节。
+var PARALLEL_SEGMENTS = 2;
+
+// Bob 1.21.0 里，每次朗读建立的第一条连接收音频只有约 240 KB/s，之后在连接回调里建立的连接约
+// 1 MB/s，原因在 Bob 一侧（与文本内容无关，见 docs/poc-findings.md 第 11 节）。文本转义后超过
+// FIRST_SEGMENT_TRIGGER_BYTES 字节时，第 1 段只切 FIRST_SEGMENT_BYTES 字节以内的一两句：它很快出声、
+// 放闸，大块内容交给后面走得快的连接。约 2900 字节的文本因此从 6.2 秒降到 3.2 秒。
+var FIRST_SEGMENT_BYTES = 300;
+var FIRST_SEGMENT_TRIGGER_BYTES = 900;
+
 // Windows FILETIME 纪元（1601-01-01）与 Unix 纪元相差的秒数
 var WIN_EPOCH_SECONDS = 11644473600;
 // Sec-MS-GEC 按 5 分钟取整；实测服务端接受相邻的一个窗口，偏差 10 分钟即 403
@@ -183,6 +195,9 @@ exports.ORIGIN = ORIGIN;
 exports.ACCEPT_LANGUAGE = ACCEPT_LANGUAGE;
 exports.OUTPUT_FORMAT = OUTPUT_FORMAT;
 exports.MAX_SEGMENT_BYTES = MAX_SEGMENT_BYTES;
+exports.PARALLEL_SEGMENTS = PARALLEL_SEGMENTS;
+exports.FIRST_SEGMENT_BYTES = FIRST_SEGMENT_BYTES;
+exports.FIRST_SEGMENT_TRIGGER_BYTES = FIRST_SEGMENT_TRIGGER_BYTES;
 exports.WIN_EPOCH_SECONDS = WIN_EPOCH_SECONDS;
 exports.GEC_WINDOW_SECONDS = GEC_WINDOW_SECONDS;
 exports.DEFAULT_RATE = DEFAULT_RATE;

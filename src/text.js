@@ -201,16 +201,17 @@ function findCut(text, start, end) {
     return -1;
 }
 
-// 把（已转义的）文本切成若干段，每段 UTF-8 字节数不超过 maxBytes。
-// 不会切开多字节字符，也不会切开 XML 实体。
-function splitText(text, maxBytes) {
+// 把（已转义的）文本切成若干段，每段 UTF-8 字节数不超过 maxBytes；给了 firstMaxBytes 时，
+// 第 1 段不超过它。不会切开多字节字符，也不会切开 XML 实体。
+function splitText(text, maxBytes, firstMaxBytes) {
     var limit = Math.max(16, Math.floor(Number(maxBytes) || config.MAX_SEGMENT_BYTES));
+    var firstLimit = Math.min(limit, Math.max(16, Math.floor(Number(firstMaxBytes) || limit)));
     var source = String(text);
     var segments = [];
     var start = 0;
 
     while (start < source.length) {
-        var end = windowEnd(source, start, limit);
+        var end = windowEnd(source, start, segments.length === 0 ? firstLimit : limit);
         var cut;
         if (end >= source.length) {
             cut = source.length;
@@ -233,8 +234,11 @@ function splitText(text, maxBytes) {
 }
 
 // 清理控制字符 -> XML 转义 -> 分段。必须先转义再分段：字节上限针对的是实际发出去的内容。
+// 转义后超过 FIRST_SEGMENT_TRIGGER_BYTES 字节的文本，第 1 段只切 FIRST_SEGMENT_BYTES 以内，原因见 config.js。
 function prepareSegments(text) {
-    return splitText(escapeXml(cleanText(text)), config.MAX_SEGMENT_BYTES);
+    var escaped = escapeXml(cleanText(text));
+    var isLong = windowEnd(escaped, 0, config.FIRST_SEGMENT_TRIGGER_BYTES) < escaped.length;
+    return splitText(escaped, config.MAX_SEGMENT_BYTES, isLong ? config.FIRST_SEGMENT_BYTES : 0);
 }
 
 exports.cleanText = cleanText;
