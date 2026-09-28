@@ -1,9 +1,9 @@
 {
     "identifier": "com.poyih.bob.plugin.edge.tts",
-    "version": "1.0.0",
+    "version": "1.1.0",
     "category": "tts",
     "name": "Microsoft Edge 语音合成",
-    "summary": "免 API Key 调用微软 Edge 浏览器「大声朗读」的语音合成接口，国内直连，覆盖 80 多种语言。非官方接口，微软可能随时变更。",
+    "summary": "免 API Key 调用微软 Edge 浏览器「大声朗读」的语音合成接口，国内直连，覆盖近 80 种语言。非官方接口，微软可能随时变更。",
     "icon": "icon.png",
     "author": "poyih & Claude",
     "homepage": "https://github.com/poyih/bob-plugin-edge-tts",
@@ -58,7 +58,15 @@
                 { "title": "七海 Nanami — 日语女声", "value": "ja-JP-NanamiNeural" },
                 { "title": "圭太 Keita — 日语男声", "value": "ja-JP-KeitaNeural" },
                 { "title": "선히 SunHi — 韩语女声", "value": "ko-KR-SunHiNeural" },
-                { "title": "인준 InJoon — 韩语男声", "value": "ko-KR-InJoonNeural" }
+                { "title": "인준 InJoon — 韩语男声", "value": "ko-KR-InJoonNeural" },
+                { "title": "Denise — 法语女声", "value": "fr-FR-DeniseNeural" },
+                { "title": "Henri — 法语男声", "value": "fr-FR-HenriNeural" },
+                { "title": "Katja — 德语女声", "value": "de-DE-KatjaNeural" },
+                { "title": "Conrad — 德语男声", "value": "de-DE-ConradNeural" },
+                { "title": "Elvira — 西班牙语女声", "value": "es-ES-ElviraNeural" },
+                { "title": "Alvaro — 西班牙语男声", "value": "es-ES-AlvaroNeural" },
+                { "title": "Svetlana — 俄语女声", "value": "ru-RU-SvetlanaNeural" },
+                { "title": "Dmitry — 俄语男声", "value": "ru-RU-DmitryNeural" }
             ]
         },
         {
@@ -175,6 +183,18 @@
                 { "title": "인준 InJoon — 男声", "value": "ko-KR-InJoonNeural" },
                 { "title": "현수 Hyunsu Multilingual — 男声，多语言", "value": "ko-KR-HyunsuMultilingualNeural" }
             ]
+        },
+        {
+            "identifier": "voiceMap",
+            "type": "text",
+            "title": "按语言指定音色",
+            "defaultValue": "",
+            "textConfig": {
+                "type": "visible",
+                "height": 60,
+                "placeholderText": "fr=fr-FR-HenriNeural; de=de-DE-ConradNeural"
+            },
+            "desc": "给上面没有单独菜单的语言指定音色。格式「语言码=音色」，多条用分号隔开，例如 fr=fr-FR-HenriNeural; de=de-DE-ConradNeural。语言码用 Bob 的写法（fr、de、es、ru、pt、ar、zh-Hans 等），音色填 ShortName，完整列表见 README。优先级在上面六个语言菜单之后、全局音色之前；下面的自定义音色会覆盖这里。"
         },
         {
             "identifier": "customVoice",

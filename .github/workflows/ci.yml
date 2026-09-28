@@ -7,8 +7,15 @@ on:
 
 jobs:
   test:
-    # jsc（JavaScriptCore）只有 macOS 有，而它正是 Bob 跑插件的引擎
+    # jsc（JavaScriptCore）只有 macOS 有，而它正是 Bob 跑插件的引擎；以这个作业的结果为准
     runs-on: macos-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
+      - run: make test
+
+  test-node:
+    # 同一套用例在 Node 上再跑一遍，顺带保证 Linux 上的开发环境可用
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
       - run: make test

@@ -1,0 +1,88 @@
+name: Release
+
+# 推送 v<version> 标签即发版：打包、创建 GitHub Release 并上传 .bobplugin，再把 sha256 和下载地址
+# 登记进 appcast.json 推回 main（推不了就推到 appcast/<tag> 分支并尝试开 PR）。
+# 标签注释的第一行是 appcast 里的更新说明，全文是 Release 说明。
+# 用法：改 src/info.json 的 version 并合并到 main，然后
+#     git tag -a v1.1.0 -m "更新说明" && git push origin v1.1.0
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  release:
+    # make pack 依赖 make test，以 macOS 的 jsc 为准
+    runs-on: macos-latest
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: 校验标签与 info.json 的版本一致
+        run: |
+          version=$(python3 -c 'import json; print(json.load(open("src/info.json"))["version"])')
+          if [ "v$version" != "$GITHUB_REF_NAME" ]; then
+            echo "::error::标签 $GITHUB_REF_NAME 与 src/info.json 的 version $version 不一致，先改 version 再打标签"
+            exit 1
+          fi
+
+      - name: 打包
+        run: make pack
+
+      - name: 读取更新说明
+        id: notes
+        run: |
+          subject=$(git tag -l --format='%(contents:subject)' "$GITHUB_REF_NAME")
+          body=$(git tag -l --format='%(contents:body)' "$GITHUB_REF_NAME")
+          [ -n "$subject" ] || subject="$GITHUB_REF_NAME"
+          {
+            echo "$subject"
+            if [ -n "$body" ]; then
+              echo
+              echo "$body"
+            fi
+          } > notes.md
+          echo "subject=$subject" >> "$GITHUB_OUTPUT"
+          echo "更新说明："
+          cat notes.md
+
+      - name: 创建 GitHub Release 并上传插件包
+        run: |
+          if gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1; then
+            gh release upload "$GITHUB_REF_NAME" dist/*.bobplugin --clobber
+          else
+            gh release create "$GITHUB_REF_NAME" dist/*.bobplugin \
+              --title "Microsoft Edge 语音合成 $GITHUB_REF_NAME" --notes-file notes.md
+          fi
+
+      - name: 登记 appcast 并推回 main
+        env:
+          SUBJECT: ${{ steps.notes.outputs.subject }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git fetch origin main
+          git checkout -B main origin/main
+          make appcast DESC="$SUBJECT"
+          git add appcast.json
+          if git diff --cached --quiet; then
+            echo "appcast.json 没有变化"
+            exit 0
+          fi
+          git commit -m "chore: appcast 登记 $GITHUB_REF_NAME"
+          if git push origin main; then
+            echo "appcast.json 已推到 main"
+          else
+            branch="appcast/$GITHUB_REF_NAME"
+            git push -f origin "HEAD:refs/heads/$branch"
+            gh pr create --base main --head "$branch" --title "chore: appcast 登记 $GITHUB_REF_NAME" \
+              --body "Release 工作流没有权限直接推 main，合并这个 PR 即完成 appcast 登记。" \
+              || echo "::warning::直接推 main 和自动开 PR 都失败了，请从分支 $branch 手动开 PR"
+          fi
