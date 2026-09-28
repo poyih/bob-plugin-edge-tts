@@ -1,0 +1,81 @@
+name: Upstream
+
+# 每周对照一次上游 rany2/edge-tts 的协议常量（浏览器版本号、端点、握手头）和微软的音色列表。
+# 微软收紧校验时上游一般几天内跟进；这里发现出入就自动开（或刷新）一个带 upstream-drift 标签的 issue。
+# 注意：公开仓库 60 天没有提交，GitHub 会自动停用定时任务，需要到 Actions 页手动重新启用。
+
+on:
+  schedule:
+    - cron: "23 2 * * 1"   # 每周一 02:23 UTC，北京时间 10:23
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: 对照上游 constants.py
+        id: upstream
+        run: |
+          set +e
+          python3 scripts/check_upstream.py --report upstream-report.md
+          echo "status=$?" >> "$GITHUB_OUTPUT"
+          cat upstream-report.md >> "$GITHUB_STEP_SUMMARY"
+
+      - name: 核对音色列表
+        id: voices
+        run: |
+          set +e
+          python3 scripts/check_voices.py > voices-report.txt 2>&1
+          status=$?
+          echo "status=$status" >> "$GITHUB_OUTPUT"
+          cat voices-report.txt
+          {
+            echo
+            echo '## 音色列表'
+            echo
+            echo '```'
+            cat voices-report.txt
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+          if [ "$status" = "2" ]; then
+            echo "::warning::音色列表请求失败，可能是 GitHub 的出口 IP 被微软限流；本地用 make voices 复核"
+          fi
+
+      - name: 开或刷新 issue
+        if: steps.upstream.outputs.status == '1' || steps.voices.outputs.status == '1'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          {
+            echo "定时任务 $(date -u +%Y-%m-%d) 发现本插件与上游有出入，处理完请关闭本 issue。工作流运行：$RUN_URL"
+            echo
+            cat upstream-report.md
+            echo
+            echo '## 音色列表'
+            echo
+            echo '```'
+            cat voices-report.txt
+            echo '```'
+          } > issue-body.md
+          gh label create upstream-drift --description "上游 edge-tts 或微软音色列表有变动" --color D93F0B --force
+          number=$(gh issue list --label upstream-drift --state open --limit 1 --json number --jq '.[0].number // empty')
+          if [ -n "$number" ]; then
+            gh issue edit "$number" --body-file issue-body.md
+            echo "已刷新 issue #$number"
+          else
+            gh issue create --title "上游接口常量或音色列表有变动" --label upstream-drift --body-file issue-body.md
+          fi
+
+      - name: 结果
+        run: |
+          if [ "${{ steps.upstream.outputs.status }}" != "0" ] || [ "${{ steps.voices.outputs.status }}" = "1" ]; then
+            echo "对照未通过，详见上面的步骤"
+            exit 1
+          fi

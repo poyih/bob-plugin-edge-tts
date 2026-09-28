@@ -35,7 +35,10 @@ appcast: ## 把 dist/ 里的包写进 appcast.json（DESC="更新说明"）
 voices: ## 联网核对 config.js 与 info.json 里的音色是否还在微软的音色列表里
 	@PYTHONDONTWRITEBYTECODE=1 python3 scripts/check_voices.py $(VOICES_ARGS)
 
+upstream: ## 联网对照上游 edge-tts 的协议常量，看 config.js 有没有落后
+	@PYTHONDONTWRITEBYTECODE=1 python3 scripts/check_upstream.py $(UPSTREAM_ARGS)
+
 clean: ## 清理构建产物
 	@rm -rf dist
 
-.PHONY: help lint test pack install appcast voices clean
+.PHONY: help lint test pack install appcast voices upstream clean
