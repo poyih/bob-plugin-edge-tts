@@ -511,17 +511,25 @@ function forgetSocket(socket) {
 
 // 建一条连接合成一段文本。callback(failure, audio)：
 //   failure = { kind, detail }，kind 取 handshake / connectTimeout / closed / stream / stalled /
-//             timeout / noAudio / internal
+//             timeout / noAudio / internal / cancelled
 //   audio   = { frames: [{ bytes, start }], bytes, textFrames, binaryFrames, ignoredFrames, ms }
+// params.onFirstAudio 可选：收到第一帧音频时调用一次，这时签名和音色都已经确认没问题。
+// 返回 { cancel }：取消后关闭连接，callback 收到 kind 为 cancelled 的失败；已经结束的连接取消了也没事。
 // 无论事件以什么顺序到达，callback 只会被调用一次。
 function connectOnce(params, callback) {
     var startedAt = nowMs();
     var lastActivityAt = startedAt;
     var finished = false;
     var opened = false;
+    var audioNotified = false;
     var socket = null;
     var timerId = null;
     var stats = { frames: [], bytes: 0, textFrames: 0, binaryFrames: 0, ignoredFrames: 0 };
+    var handle = {
+        cancel: function () {
+            finish({ kind: "cancelled", detail: {} });
+        }
+    };
 
     function finish(failure) {
         if (finished) {
@@ -674,6 +682,12 @@ function connectOnce(params, callback) {
         }
         stats.frames.push({ bytes: bytes, start: frame.audioStart });
         stats.bytes += frame.audioLength;
+        if (!audioNotified) {
+            audioNotified = true;
+            if (typeof params.onFirstAudio === "function") {
+                params.onFirstAudio();
+            }
+        }
     }
 
     function onError() {
@@ -699,7 +713,7 @@ function connectOnce(params, callback) {
     try {
         if (typeof $websocket === "undefined" || !$websocket || typeof $websocket.new !== "function") {
             finish({ kind: "internal", detail: { error: { message: "当前 Bob 版本没有 $websocket" } } });
-            return;
+            return handle;
         }
         socket = $websocket.new({
             url: buildUrl(correctedNowMs() / 1000),
@@ -719,6 +733,7 @@ function connectOnce(params, callback) {
     } catch (err) {
         finish({ kind: "internal", detail: { event: "connect", error: describeError(err) } });
     }
+    return handle;
 }
 
 // ---------------------------------------------------------------- 时钟偏差兜底
@@ -752,6 +767,8 @@ function parseHttpDate(value) {
 }
 
 // 握手被拒时拿不到响应头，改为请求音色列表，用它的 Date 头估算本机时钟偏差。
+// 列表有 171 KB 且服务端不压缩，但只在握手被拒时才请求一次。没有改用 HEAD：2026-09-28 实测
+// 这个地址对 HEAD 回 404（虽然带 Date），耗时和 GET 一样约 0.6 秒，不值得依赖一个 404。
 // callback({ reachable, skewMs, serverDate, statusCode, error })
 function probeClockSkew(callback) {
     var done = once(callback, "时钟探测");
@@ -886,9 +903,10 @@ function isTransientFailure(failure) {
 }
 
 // 合成一段。失败时按顺序兜底：握手被拒先校时重签一次（整次朗读只做一次）；音色读不了这种
-// 语言就换成该语言的内置默认音色；瞬时故障最多再试 MAX_TRANSIENT_RETRIES 次。
-// 每次重试都要求剩余预算还够，不然直接报错，免得撞上 Bob 的超时。
-function synthesizeSegment(job, index, callback) {
+// 语言就换成该语言的内置默认音色；瞬时故障最多再试 MAX_TRANSIENT_RETRIES 次。重试次数与回退
+// 在整次朗读的各段之间共用。每次重试都要求剩余预算还够，不然直接报错，免得撞上 Bob 的超时。
+// job.stopped 之后（别的段已经失败）不再发起连接，也不再回调。
+function synthesizeSegment(job, index, callback, onFirstAudio) {
     var context = {
         voice: job.voice,
         segmentIndex: index,
@@ -909,6 +927,9 @@ function synthesizeSegment(job, index, callback) {
     }
 
     function attempt() {
+        if (job.stopped) {
+            return;
+        }
         var remainingMs = job.deadline - nowMs();
         if (remainingMs <= 0) {
             callback(makeError("network",
@@ -917,12 +938,17 @@ function synthesizeSegment(job, index, callback) {
                     retries: job.retries }));
             return;
         }
-        connectOnce({
+        // 连接可能同步结束并在回调里发起下一次尝试，所以只登记、不按段号覆盖；取消已结束的连接没有副作用
+        var connection = connectOnce({
             voiceName: job.voiceName,
             prosody: job.prosody,
             text: job.segments[index],
-            timeoutSeconds: Math.max(1, Math.min(CONNECT_TIMEOUT, Math.ceil(remainingMs / 1000)))
+            timeoutSeconds: Math.max(1, Math.min(CONNECT_TIMEOUT, Math.ceil(remainingMs / 1000))),
+            onFirstAudio: onFirstAudio
         }, function (failure, audio) {
+            if (job.stopped) {
+                return;
+            }
             if (!failure) {
                 callback(null, audio);
                 return;
@@ -931,11 +957,16 @@ function synthesizeSegment(job, index, callback) {
                 job.skewProbed = true;
                 logInfo("握手失败，检查本机时钟后重试一次 detail=" + oneLine(JSON.stringify(failure.detail)));
                 probeClockSkew(function (probe) {
+                    if (job.stopped) {
+                        return;
+                    }
                     context.skew = probe;
                     if (!probe.reachable) {
                         var detail = failure.detail || {};
                         detail.kind = "unreachable";
                         detail.voice = job.voice;
+                        detail.segment = index + 1;
+                        detail.segments = job.segments.length;
                         detail.clockProbe = probe;
                         callback(makeError("network", "连接不上微软语音服务，请检查网络或代理设置", detail));
                         return;
@@ -972,6 +1003,11 @@ function synthesizeSegment(job, index, callback) {
             }
             fail(failure);
         });
+        job.connections.push(connection);
+        // 别的段在这条连接建立的过程中同步失败了：登记时补一刀
+        if (job.stopped) {
+            connection.cancel();
+        }
     }
 
     attempt();
@@ -1011,65 +1047,120 @@ function synthesize(request, callback) {
         skewProbed: false,
         noAudioRetried: false,
         transientRetries: 0,
-        retries: 0
+        retries: 0,
+        // 某一段最终失败后置位：其余段的连接全部取消，不再重试，也不再回调
+        stopped: false,
+        // 发起过的全部连接，失败时逐个取消
+        connections: []
     };
     var sink = new Base64Sink();
-    var index = 0;
+    var parallel = Math.max(1, Math.floor(Number(config.PARALLEL_SEGMENTS) || 1));
+    // 已合成、还没轮到拼进 sink 的段
+    var pending = [];
+    // 已经按段序拼进 sink 的段数
+    var flushed = 0;
+    // 已经启动的段数
+    var started = 0;
+    // 第 1 段收到第一帧音频之前，后面的段不启动：握手被拒要先校时，音色读不了这种语言要先换音色
+    var gateOpen = false;
 
     function fail(error) {
+        if (job.stopped) {
+            return;
+        }
+        job.stopped = true;
+        for (var i = 0; i < job.connections.length; i++) {
+            job.connections[i].cancel();
+        }
+        var detail = error.addtion || {};
         logError("failed type=" + error.type +
-            " kind=" + ((error.addtion && error.addtion.kind) || "-") +
+            " kind=" + (detail.kind || "-") +
             " voice=" + job.voice + "(" + job.voiceSource + ")" +
-            " segment=" + (index + 1) + "/" + segments.length +
+            " segment=" + (detail.segment || "-") + "/" + segments.length +
             " retries=" + job.retries +
             " ms=" + (nowMs() - startedAt) +
-            " detail=" + oneLine(JSON.stringify(error.addtion || {}), 500));
+            " detail=" + oneLine(JSON.stringify(detail), 500));
         callback(error, null);
     }
 
-    function next() {
-        if (index >= segments.length) {
-            var format = sniffAudio(sink.head);
-            var base64 = sink.finish();
-            var ms = nowMs() - startedAt;
-            if (format === "unknown") {
-                logInfo("warn 返回的数据开头不像 mp3，仍交给 Bob 播放");
+    function finishAll() {
+        var format = sniffAudio(sink.head);
+        var base64 = sink.finish();
+        var ms = nowMs() - startedAt;
+        if (format === "unknown") {
+            logInfo("warn 返回的数据开头不像 mp3，仍交给 Bob 播放");
+        }
+        logInfo("done voice=" + job.voice + "(" + job.voiceSource + ")" +
+            " lang=" + (request.lang || "-") +
+            " segments=" + segments.length +
+            " retries=" + job.retries +
+            " bytes=" + sink.byteCount +
+            " ms=" + ms +
+            " rate=" + job.prosody.rate + " pitch=" + job.prosody.pitch + " volume=" + job.prosody.volume);
+        callback(null, {
+            base64: base64,
+            voice: job.voice,
+            voiceSource: job.voiceSource,
+            retries: job.retries,
+            bytes: sink.byteCount,
+            segments: segments.length,
+            ms: ms,
+            format: format,
+            prosody: job.prosody
+        });
+    }
+
+    // 段可能乱序完成，按段序拼接；拼完就丢掉这段的帧
+    function onSegmentDone(index, audio) {
+        gateOpen = true;
+        pending[index] = audio;
+        while (flushed < segments.length && pending[flushed]) {
+            var frames = pending[flushed].frames;
+            pending[flushed] = null;
+            for (var i = 0; i < frames.length; i++) {
+                sink.append(frames[i].bytes, frames[i].start, frames[i].bytes.length);
             }
-            logInfo("done voice=" + job.voice + "(" + job.voiceSource + ")" +
-                " lang=" + (request.lang || "-") +
-                " segments=" + segments.length +
-                " retries=" + job.retries +
-                " bytes=" + sink.byteCount +
-                " ms=" + ms +
-                " rate=" + job.prosody.rate + " pitch=" + job.prosody.pitch + " volume=" + job.prosody.volume);
-            callback(null, {
-                base64: base64,
-                voice: job.voice,
-                voiceSource: job.voiceSource,
-                retries: job.retries,
-                bytes: sink.byteCount,
-                segments: segments.length,
-                ms: ms,
-                format: format,
-                prosody: job.prosody
-            });
+            flushed += 1;
+        }
+        if (flushed === segments.length) {
+            finishAll();
             return;
         }
+        launch();
+    }
+
+    function onFirstAudio() {
+        if (!gateOpen) {
+            gateOpen = true;
+            launch();
+        }
+    }
+
+    // 已启动但还没拼进 sink 的段不超过 parallel 段：同时在途的连接和压在内存里的音频都有上限
+    function launch() {
+        while (!job.stopped && started < segments.length && started < flushed + parallel &&
+            (started === 0 || gateOpen)) {
+            // 先占号再启动：桩或 Bob 可能同步回调并重入 launch
+            var index = started;
+            started += 1;
+            startSegment(index);
+        }
+    }
+
+    function startSegment(index) {
         synthesizeSegment(job, index, function (error, audio) {
+            if (job.stopped) {
+                return;
+            }
             if (error) {
                 fail(error);
                 return;
             }
-            for (var i = 0; i < audio.frames.length; i++) {
-                var frame = audio.frames[i];
-                sink.append(frame.bytes, frame.start, frame.bytes.length);
-            }
-            index += 1;
-            next();
-        });
+            onSegmentDone(index, audio);
+        }, onFirstAudio);
     }
 
-    next();
+    launch();
 }
 
 function unexpectedError(err) {

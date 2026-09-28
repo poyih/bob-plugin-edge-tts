@@ -4,7 +4,7 @@ JSC     := $(if $(wildcard $(JSC_MAC)),$(JSC_MAC),node scripts/jsc_shim.js)
 NAME    := bob-plugin-edge-tts
 VERSION := $(shell python3 -c 'import json; print(json.load(open("src/info.json"))["version"])')
 BUNDLE  := dist/$(NAME)-$(VERSION).bobplugin
-PYFILES := $(sort $(wildcard scripts/*.py))
+PYFILES := $(sort $(wildcard scripts/*.py scripts/live/*.py))
 
 .DEFAULT_GOAL := help
 

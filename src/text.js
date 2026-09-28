@@ -62,6 +62,37 @@ function endsEntity(text, index) {
     return false;
 }
 
+// 列表编号「30. 」的句点不是句末。Bob 会把换行换成空格，「……大家。\n30. 第30条」到插件这里是
+// 「……大家。 30. 第30条」；把这个句点当句末会在「30.」后面切开，编号被读到上一段末尾。
+// 认定条件：句点前是 1 到 3 位数字，数字前是空白或文本开头，空白里有换行，或者空白前是上一条的
+// 句末标点、引号括号或冒号。「The total was 31. Then」这种句中数字不算编号。
+// 返回编号数字开头的下标（在这里切开，编号留给下一段）；不是编号返回 -1。
+var LIST_LEAD = SENTENCE_END + ASCII_SENTENCE_END + CLOSERS + "：:";
+
+function listMarkerStart(text, dot) {
+    var i = dot - 1;
+    while (i >= 0 && dot - i <= 4 && text.charCodeAt(i) >= 48 && text.charCodeAt(i) <= 57) {
+        i -= 1;
+    }
+    var digits = dot - 1 - i;
+    if (digits < 1 || digits > 3) {
+        return -1;
+    }
+    var begin = i + 1;
+    if (i < 0) {
+        return begin;
+    }
+    if (!isWhitespace(text.charAt(i))) {
+        return -1;
+    }
+    var newline = false;
+    while (i >= 0 && isWhitespace(text.charAt(i))) {
+        newline = newline || text.charAt(i) === "\n";
+        i -= 1;
+    }
+    return newline || i < 0 || LIST_LEAD.indexOf(text.charAt(i)) !== -1 ? begin : -1;
+}
+
 // 硬切（窗口里找不到标点和空白）时，切点不能落在 &amp; 这类实体中间
 function avoidEntitySplit(text, start, cut) {
     for (var i = cut - 1; i >= start && cut - i <= 6; i--) {
@@ -104,13 +135,15 @@ function windowEnd(text, start, maxBytes) {
 
 // 在 [start, end) 里找最合适的切点，返回切点下标（切点之前的内容归前一段）。
 // 切点分三档：换行 > 句末标点 > 逗号 / 空白。先在窗口后半段找最高的一档，找不到再看前半段，
-// 都没有就硬切。换行排在句末标点前面，是为了避免「1. 第一项\n2. 第二项」在编号的句点后
-// 被切开，把下一项的编号读到上一段末尾。
+// 都没有就硬切。列表编号的切点在编号前面，和句末标点同档，编号后面的空白不当切点，
+// 这样「1. 第一项\n2. 第二项」不会把下一项的编号读到上一段末尾，换行被换成空格时也一样。
 function findCut(text, start, end) {
     var half = start + Math.floor((end - start) / 2);
     var line = -1;
     var strong = -1;
     var weak = -1;
+    // 刚认出的编号句点后面那个空白的下标
+    var markerSpace = -1;
 
     for (var i = start; i < end; i++) {
         var ch = text.charAt(i);
@@ -122,18 +155,27 @@ function findCut(text, start, end) {
         var followedBySpace = next === "" || isWhitespace(next);
         var isStrong = false;
         var isWeak = false;
+        var marker = -1;
 
         if (SENTENCE_END.indexOf(ch) !== -1) {
             isStrong = true;
         } else if (ASCII_SENTENCE_END.indexOf(ch) !== -1) {
-            isStrong = followedBySpace && !(ch === ";" && endsEntity(text, i));
+            if (ch === "." && followedBySpace) {
+                marker = listMarkerStart(text, i);
+            }
+            isStrong = followedBySpace && marker === -1 && !(ch === ";" && endsEntity(text, i));
         } else if (CLAUSE_BREAK.indexOf(ch) !== -1 || isWhitespace(ch)) {
-            isWeak = true;
+            isWeak = i !== markerSpace;
         } else if (ASCII_CLAUSE_BREAK.indexOf(ch) !== -1) {
             isWeak = followedBySpace;
         }
 
-        if (isStrong) {
+        if (marker !== -1) {
+            if (marker > start) {
+                strong = marker;
+            }
+            markerSpace = i + 1;
+        } else if (isStrong) {
             var after = i + 1;
             while (after < end && CLOSERS.indexOf(text.charAt(after)) !== -1) {
                 after += 1;
@@ -159,16 +201,17 @@ function findCut(text, start, end) {
     return -1;
 }
 
-// 把（已转义的）文本切成若干段，每段 UTF-8 字节数不超过 maxBytes。
-// 不会切开多字节字符，也不会切开 XML 实体。
-function splitText(text, maxBytes) {
+// 把（已转义的）文本切成若干段，每段 UTF-8 字节数不超过 maxBytes；给了 firstMaxBytes 时，
+// 第 1 段不超过它。不会切开多字节字符，也不会切开 XML 实体。
+function splitText(text, maxBytes, firstMaxBytes) {
     var limit = Math.max(16, Math.floor(Number(maxBytes) || config.MAX_SEGMENT_BYTES));
+    var firstLimit = Math.min(limit, Math.max(16, Math.floor(Number(firstMaxBytes) || limit)));
     var source = String(text);
     var segments = [];
     var start = 0;
 
     while (start < source.length) {
-        var end = windowEnd(source, start, limit);
+        var end = windowEnd(source, start, segments.length === 0 ? firstLimit : limit);
         var cut;
         if (end >= source.length) {
             cut = source.length;
@@ -191,8 +234,11 @@ function splitText(text, maxBytes) {
 }
 
 // 清理控制字符 -> XML 转义 -> 分段。必须先转义再分段：字节上限针对的是实际发出去的内容。
+// 转义后超过 FIRST_SEGMENT_TRIGGER_BYTES 字节的文本，第 1 段只切 FIRST_SEGMENT_BYTES 以内，原因见 config.js。
 function prepareSegments(text) {
-    return splitText(escapeXml(cleanText(text)), config.MAX_SEGMENT_BYTES);
+    var escaped = escapeXml(cleanText(text));
+    var isLong = windowEnd(escaped, 0, config.FIRST_SEGMENT_TRIGGER_BYTES) < escaped.length;
+    return splitText(escaped, config.MAX_SEGMENT_BYTES, isLong ? config.FIRST_SEGMENT_BYTES : 0);
 }
 
 exports.cleanText = cleanText;
