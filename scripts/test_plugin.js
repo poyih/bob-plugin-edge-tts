@@ -430,6 +430,7 @@ var BASE_OPTIONS = {
     voiceEn: "auto",
     voiceJa: "auto",
     voiceKo: "auto",
+    voiceMap: "",
     customVoice: "",
     rate: "+0%",
     pitch: "+0Hz",
@@ -533,8 +534,10 @@ var XIAOXIAO_FULL = "Microsoft Server Speech Text to Speech Voice (zh-CN, Xiaoxi
     var langs = plugin.supportLanguages();
     ok(Array.isArray(langs) && langs.length >= 60, "supportLanguages 返回语言数组（" + langs.length + " 种）");
     ok(["zh-Hans", "zh-Hant", "yue", "en", "ja", "ko", "fr", "de", "es", "it", "ru", "pt", "nl", "pl", "ar", "hi",
-        "tr", "vi", "th", "id", "ms", "uk", "cs", "da", "fi", "el", "he", "hu", "nb", "ro", "sk", "sv"]
+        "tr", "vi", "th", "id", "ms", "uk", "cs", "da", "fi", "el", "he", "hu", "no", "ro", "sk", "sv"]
         .every(function (l) { return langs.indexOf(l) >= 0; }), "语言列表覆盖任务卡要求的全部语言");
+    ok(["nb", "fil", "jv", "pt-pt", "pt-br"].every(function (l) { return langs.indexOf(l) < 0; }) &&
+        langs.indexOf("sr-Latn") >= 0, "语言列表只含 Bob 会传给插件的语言码");
     ok(langs.indexOf("auto") < 0, "TTS 语言列表不含 auto");
     eq(langs.length, config.DEFAULT_VOICES.length, "supportLanguages 由内置音色表推导");
     eq(plugin.pluginTimeoutInterval(), 60, "pluginTimeoutInterval 为 60 秒");
@@ -846,6 +849,38 @@ var XIAOXIAO_FULL = "Microsoft Server Speech Text to Speech Voice (zh-CN, Xiaoxi
         ok(T.resolveVoice(pair[0]).voice === "en-GB-SoniaNeural" && T.resolveVoice(pair[0]).source === "override",
             pair[0] + " 读取选项 " + pair[1]);
     });
+
+    // 按语言指定音色：优先级在语言菜单之后、全局音色之前
+    reset({ voiceMap: "fr=fr-FR-HenriNeural; de = de-DE-ConradNeural ,ru=ru-RU-DmitryNeural\nZH-HANS=zh-CN-YunxiNeural；ja＝ja-JP-KeitaNeural" });
+    r = T.resolveVoice("fr");
+    ok(r.voice === "fr-FR-HenriNeural" && r.source === "map", "按语言指定：分号分隔，来源记为 map");
+    eq(T.resolveVoice("de").voice, "de-DE-ConradNeural", "按语言指定：等号两边的空白被去掉");
+    eq(T.resolveVoice("ru").voice, "ru-RU-DmitryNeural", "按语言指定：逗号分隔");
+    eq(T.resolveVoice("zh-Hans").voice, "zh-CN-YunxiNeural", "按语言指定：语言码不区分大小写，换行分隔");
+    eq(T.resolveVoice("ja").voice, "ja-JP-KeitaNeural", "按语言指定：全角分号与等号也认");
+    eq(T.resolveVoice("es").voice, "es-ES-ElviraNeural", "按语言指定：没指定的语言仍用内置表");
+    reset({ voiceMap: "fr=fr-FR-HenriNeural", voiceMode: "global", globalVoice: "en-US-AvaMultilingualNeural" });
+    ok(T.resolveVoice("fr").voice === "fr-FR-HenriNeural" && T.resolveVoice("de").voice === "en-US-AvaMultilingualNeural",
+        "按语言指定优先于全局音色");
+    reset({ voiceMap: "en=en-GB-SoniaNeural", voiceEn: "en-US-JennyNeural" });
+    eq(T.resolveVoice("en").voice, "en-US-JennyNeural", "语言菜单优先于按语言指定");
+    reset({ voiceMap: "en=en-GB-SoniaNeural", customVoice: "fr-FR-HenriNeural" });
+    eq(T.resolveVoice("en").voice, "fr-FR-HenriNeural", "自定义音色优先于按语言指定");
+    reset({ voiceMap: "fr=fr-FR-HenriNeural;fr=fr-FR-DeniseNeural" });
+    eq(T.resolveVoice("fr").voice, "fr-FR-DeniseNeural", "同一语言指定多次以最后一项为准");
+    reset({ voiceMap: "fr-FR-HenriNeural; =x; de=; ;; ru=ru-RU-DmitryNeural" });
+    ok(T.resolveVoice("fr").voice === "fr-FR-DeniseNeural" && T.resolveVoice("ru").voice === "ru-RU-DmitryNeural" &&
+        loggedLine("格式不对，已忽略"), "格式不对的项被忽略并记日志，其余照常生效");
+    eq(JSON.stringify(T.parseVoiceMap("")), "{}", "空文本得到空映射");
+    reset({ voiceMap: "fr=Henri" });
+    r = speak({ text: "Bonjour", lang: "fr" });
+    ok(r.length === 1 && r[0].error && r[0].error.type === "param" && r[0].error.addtion.source === "map" &&
+        sockets.length === 0, "按语言指定的音色格式不对时报 param，不建连接");
+    reset({ voiceMap: "fr=fr-FR-HenriNeural" });
+    socketScripts.push(successScript(fakeAudio(300), 720));
+    r = speak({ text: "Bonjour", lang: "fr" });
+    ok(r.length === 1 && r[0].result && ssmlOf(sockets[0]).indexOf("(fr-FR, HenriNeural)") > 0 &&
+        r[0].result.raw.voice_source === "map", "按语言指定的音色用于合成，raw 记录来源");
 
     // 13. 语速 / 音调 / 音量
     reset({ rate: "+25%", pitch: "-10Hz", volume: "-30%" });

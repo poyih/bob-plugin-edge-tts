@@ -201,7 +201,37 @@ function toVoiceName(voice) {
         voice.slice(0, index) + ", " + voice.slice(index + 1) + ")";
 }
 
-// 优先级：自定义音色 > 当前语言的覆盖菜单 > 全局固定音色 > 内置语言表
+// 「按语言指定音色」文本框：fr=fr-FR-HenriNeural; de=de-DE-ConradNeural。分号、逗号或换行分隔，
+// 全角标点也认；语言码不区分大小写，同一语言写了多次以最后一项为准；格式不对的项记日志后忽略。
+function parseVoiceMap(text) {
+    var map = {};
+    var entries = String(text || "").replace(/；/g, ";").replace(/，/g, ",").replace(/＝/g, "=").split(/[;,\n]/);
+    for (var i = 0; i < entries.length; i++) {
+        var entry = entries[i].trim();
+        if (!entry) {
+            continue;
+        }
+        var separator = entry.indexOf("=");
+        var lang = separator > 0 ? entry.slice(0, separator).trim() : "";
+        var voice = separator > 0 ? entry.slice(separator + 1).trim() : "";
+        if (!lang || !voice) {
+            logInfo("按语言指定音色里有一项格式不对，已忽略：" + oneLine(entry, 80));
+            continue;
+        }
+        map[lang.toLowerCase()] = voice;
+    }
+    return map;
+}
+
+function mappedVoiceFor(lang) {
+    var text = readOption("voiceMap");
+    if (!text) {
+        return "";
+    }
+    return parseVoiceMap(text)[String(lang || "").toLowerCase()] || "";
+}
+
+// 优先级：自定义音色 > 当前语言的覆盖菜单 > 按语言指定 > 全局固定音色 > 内置语言表
 function resolveVoice(lang) {
     var custom = readOption("customVoice");
     if (custom) {
@@ -213,6 +243,10 @@ function resolveVoice(lang) {
         if (override && override !== config.FOLLOW_MODE) {
             return { voice: override, source: "override" };
         }
+    }
+    var mapped = mappedVoiceFor(lang);
+    if (mapped) {
+        return { voice: mapped, source: "map" };
     }
     if (readOption("voiceMode") === config.VOICE_MODE_GLOBAL) {
         return { voice: readOption("globalVoice") || config.DEFAULT_GLOBAL_VOICE, source: "global" };
@@ -1153,6 +1187,7 @@ exports.__test = {
     prepareSegments: textUtil.prepareSegments,
     isValidVoice: isValidVoice,
     toVoiceName: toVoiceName,
+    parseVoiceMap: parseVoiceMap,
     resolveVoice: resolveVoice,
     resolveProsody: resolveProsody,
     dataToBytes: dataToBytes,

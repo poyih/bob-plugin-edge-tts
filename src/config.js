@@ -45,8 +45,9 @@ var FOLLOW_MODE = "auto";
 var DEFAULT_GLOBAL_VOICE = "en-US-EmmaMultilingualNeural";
 
 // Bob 语言代码 -> 默认音色 ShortName。supportLanguages() 由这张表推导。
-// 2026-09-27 对照 voices/list（322 个音色）逐个核对过，全部存在；
-// 之后可以用 make voices 联网复核。
+// 语言代码以 Bob 会传给插件的为准：2026-09-28 与社区插件 openai-translator 的 lang.ts 核对过，
+// Bob 用 no / tl / jw / pt / sr-Cyrl / sr-Latn，没有 nb / fil / jv / pt-pt / pt-br。
+// 音色 2026-09-27 对照 voices/list（322 个音色）逐个核对过，全部存在；之后可以用 make voices 联网复核。
 var DEFAULT_VOICES = [
     ["zh-Hans", "zh-CN-XiaoxiaoNeural"],
     ["zh-Hant", "zh-TW-HsiaoChenNeural"],
@@ -62,8 +63,6 @@ var DEFAULT_VOICES = [
     ["it", "it-IT-ElsaNeural"],
     ["ru", "ru-RU-SvetlanaNeural"],
     ["pt", "pt-BR-FranciscaNeural"],
-    ["pt-pt", "pt-PT-RaquelNeural"],
-    ["pt-br", "pt-BR-FranciscaNeural"],
     ["nl", "nl-NL-ColetteNeural"],
     ["pl", "pl-PL-ZofiaNeural"],
     ["ar", "ar-SA-ZariyahNeural"],
@@ -80,7 +79,6 @@ var DEFAULT_VOICES = [
     ["el", "el-GR-AthinaNeural"],
     ["he", "he-IL-HilaNeural"],
     ["hu", "hu-HU-NoemiNeural"],
-    ["nb", "nb-NO-PernilleNeural"],
     ["no", "nb-NO-PernilleNeural"],
     ["ro", "ro-RO-AlinaNeural"],
     ["sk", "sk-SK-ViktoriaNeural"],
@@ -95,14 +93,12 @@ var DEFAULT_VOICES = [
     ["cy", "cy-GB-NiaNeural"],
     ["et", "et-EE-AnuNeural"],
     ["fa", "fa-IR-DilaraNeural"],
-    ["fil", "fil-PH-BlessicaNeural"],
     ["tl", "fil-PH-BlessicaNeural"],
     ["ga", "ga-IE-OrlaNeural"],
     ["gl", "gl-ES-SabelaNeural"],
     ["gu", "gu-IN-DhwaniNeural"],
     ["hr", "hr-HR-GabrijelaNeural"],
     ["is", "is-IS-GudrunNeural"],
-    ["jv", "jv-ID-SitiNeural"],
     ["jw", "jv-ID-SitiNeural"],
     ["ka", "ka-GE-EkaNeural"],
     ["kk", "kk-KZ-AigulNeural"],
@@ -125,6 +121,8 @@ var DEFAULT_VOICES = [
     ["sq", "sq-AL-AnilaNeural"],
     ["sr", "sr-RS-SophieNeural"],
     ["sr-Cyrl", "sr-RS-SophieNeural"],
+    // Edge 只有西里尔字母的塞尔维亚语音色，拉丁字母的文本也交给它试
+    ["sr-Latn", "sr-RS-SophieNeural"],
     ["su", "su-ID-TutiNeural"],
     ["sw", "sw-KE-ZuriNeural"],
     ["ta", "ta-IN-PallaviNeural"],
