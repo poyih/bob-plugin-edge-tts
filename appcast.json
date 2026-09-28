@@ -3,7 +3,7 @@
   "versions": [
     {
       "version": "1.2.0",
-      "desc": "Merge pull request #7 from poyih/claude/nice-mccarthy-c1u926",
+      "desc": "长文本合成快一倍：开头一两句先出声，其余各段两路并发；修复编号列表的切分",
       "sha256": "ad600bd3eb8c644888a92b34819b63ccd079628293a34b33f651bcb60d6bfd8f",
       "url": "https://github.com/poyih/bob-plugin-edge-tts/releases/download/v1.2.0/bob-plugin-edge-tts-1.2.0.bobplugin",
       "minBobVersion": "1.8.0",
