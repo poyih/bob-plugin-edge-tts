@@ -1080,11 +1080,31 @@ var XIAOXIAO_FULL = "Microsoft Server Speech Text to Speech Voice (zh-CN, Xiaoxi
     ok(fireActiveTimer() && r.length === 0 && activeTimers() === 1, "空闲超时：距上一帧不到 15 秒时只会重新上弦");
     clockOffset += 6001;
     ok(fireActiveTimer(), "空闲超时：距上一帧 15 秒到点");
-    ok(r.length === 1 && r[0].error.type === "network" && r[0].error.addtion.kind === "stalled" &&
-        r[0].error.addtion.idleSeconds === 15, "空闲超时映射为 network");
-    ok(r[0].error.message.indexOf("连接中断") > 0 && r[0].error.addtion.audioBytes === 720 &&
-        r[0].error.addtion.opened === true, "空闲超时：提示连接中断，addtion 记录已收到的字节数");
-    ok(sockets[0].closeCalls === 1 && activeTimers() === 0 && httpRequests.length === 0, "空闲超时后关闭连接，不触发时钟兜底");
+    ok(r.length === 0 && sockets.length === 2 && sockets[0].closeCalls === 1 && activeTimers() === 1,
+        "空闲超时属于瞬时故障：关掉这条连接，换一条重试");
+    ok(loggedLine("stalled 失败") && loggedLine("第 1 次重试"), "空闲超时：日志记录重试");
+    audio = fakeAudio(720);
+    sockets[1].fireOpen();
+    sockets[1].fireData(makeData(binaryFrame(AUDIO_HEADER, audio)));
+    sockets[1].fireText(textFrame("turn.end"));
+    ok(r.length === 1 && r[0].result && r[0].result.value === base64(audio) && r[0].result.raw.retries === 1,
+        "空闲超时：重试成功，丢掉第一条连接的残缺音频，raw 记录重试次数");
+    eq(httpRequests.length, 0, "空闲超时不触发时钟兜底");
+
+    // 连续三条连接都没数据：两次重试用完后按空闲超时报错
+    reset();
+    socketScripts.push(openOnlyScript, openOnlyScript, openOnlyScript);
+    r = speak(ZH);
+    for (i = 0; i < 3; i++) {
+        clockOffset += 15001;
+        fireActiveTimer();
+    }
+    ok(r.length === 1 && r[0].error && r[0].error.type === "network" && r[0].error.addtion.kind === "stalled" &&
+        r[0].error.addtion.idleSeconds === 15 && r[0].error.addtion.retries === 2 && sockets.length === 3,
+        "空闲超时：两次重试仍失败时映射为 network，addtion 记录重试次数");
+    ok(r[0].error.message.indexOf("连接中断") > 0 && r[0].error.addtion.opened === true &&
+        sockets.every(function (sock) { return sock.closeCalls === 1; }) && activeTimers() === 0,
+        "空闲超时：提示连接中断，三条连接都已关闭");
 
     // 一直有数据进来就不算空闲，最终由 30 秒的总期限收场
     reset();
@@ -1103,14 +1123,15 @@ var XIAOXIAO_FULL = "Microsoft Server Speech Text to Speech Voice (zh-CN, Xiaoxi
 
     // 20. 状态机：turn.end 但没有音频
     reset();
-    socketScripts.push(noAudioScript);
+    socketScripts.push(noAudioScript, noAudioScript);
     r = speak({ text: "你好", lang: "en" });
     eq(r.length, 1, "无音频：completion 调用一次");
     ok(r[0].error && r[0].error.type === "api", "无音频映射为 api");
     eq(r[0].error.message, "未返回音频，请换个音色重试", "无音频的提示语");
     ok(r[0].error.addtion.kind === "noAudio" && r[0].error.addtion.voice === "en-US-AriaNeural" &&
         r[0].error.addtion.binaryFrames === 1, "无音频：addtion 记录音色与帧数");
-    ok(sockets.length === 1 && httpRequests.length === 0, "无音频不重试");
+    ok(sockets.length === 2 && r[0].error.addtion.retries === 1 && httpRequests.length === 0,
+        "无音频且没有可回退的音色：同一音色只重试一次，不触发时钟兜底");
 
     // 21. 状态机：服务端中途关闭
     reset({ customVoice: "zh-CN-NoSuchVoiceNeural" });
@@ -1122,21 +1143,24 @@ var XIAOXIAO_FULL = "Microsoft Server Speech Text to Speech Voice (zh-CN, Xiaoxi
         "addtion 记录关闭码与原因");
 
     reset();
-    socketScripts.push(closeScript(1011, "Internal server error"));
+    socketScripts.push(closeScript(1011, "Internal server error"), closeScript(1011, "Internal server error"),
+        closeScript(1011, "Internal server error"));
     r = speak(ZH);
     ok(r.length === 1 && r[0].error && r[0].error.type === "api" &&
         r[0].error.message.indexOf("Internal server error") > 0, "其他原因的中途关闭映射为 api 并带出原因");
+    ok(sockets.length === 3 && r[0].error.addtion.retries === 2, "中途关闭最多重试两次");
 
-    reset();
-    socketScripts.push(function (socket) {
+    var streamErrorScript = function (socket) {
         socket.fireOpen();
         socket.fireData(makeData(binaryFrame(AUDIO_HEADER, fakeAudio(720))));
         socket.fireError({ code: 57, message: "Socket is not connected" });
         socket.fireClose(1006, "");
-    });
+    };
+    reset();
+    socketScripts.push(streamErrorScript, streamErrorScript, streamErrorScript);
     r = speak(ZH);
-    ok(r.length === 1 && r[0].error && r[0].error.type === "network" && r[0].error.addtion.kind === "stream",
-        "合成途中连接出错映射为 network，不返回残缺音频");
+    ok(r.length === 1 && r[0].error && r[0].error.type === "network" && r[0].error.addtion.kind === "stream" &&
+        sockets.length === 3, "合成途中连接出错：两次重试仍失败映射为 network，不返回残缺音频");
     eq(httpRequests.length, 0, "连接建立之后的错误不触发时钟兜底");
 
     // 22. 异常帧不影响正常音频
@@ -1292,10 +1316,10 @@ var XIAOXIAO_FULL = "Microsoft Server Speech Text to Speech Voice (zh-CN, Xiaoxi
         "pluginValidate 握手失败时返回 result: false 与错误");
 
     reset();
-    socketScripts.push(noAudioScript);
+    socketScripts.push(noAudioScript, noAudioScript);
     r = validate();
-    ok(r.length === 1 && r[0].result === false && r[0].error.message === "未返回音频，请换个音色重试",
-        "pluginValidate 无音频时返回错误");
+    ok(r.length === 1 && r[0].result === false && r[0].error.message === "未返回音频，请换个音色重试" &&
+        sockets.length === 2, "pluginValidate 无音频时同一音色重试一次后返回错误");
 
     reset({ customVoice: "not a voice" });
     r = validate();
@@ -1326,6 +1350,90 @@ var XIAOXIAO_FULL = "Microsoft Server Speech Text to Speech Voice (zh-CN, Xiaoxi
     sockets[0].fireText(textFrame("turn.end"));
     ok(firstCall.length === 1 && firstCall[0].result.value === base64(audioA) && T.activeSocketCount() === 0,
         "两次朗读的音频不会串");
+
+    // 28. 瞬时故障重试
+    reset();
+    audio = fakeAudio(300);
+    socketScripts.push(closeScript(1011, "Internal server error"), successScript(audio, 720));
+    r = speak(ZH);
+    ok(r.length === 1 && r[0].result && r[0].result.value === base64(audio) && sockets.length === 2 &&
+        r[0].result.raw.retries === 1, "1011 中途关闭：换一条连接重试后成功");
+    ok(loggedLine("closed 失败") && loggedLine("第 1 次重试") && loggedLine("retries=1"), "重试与结果都写日志");
+
+    reset();
+    socketScripts.push(streamErrorScript, successScript(fakeAudio(300), 720));
+    r = speak(ZH);
+    ok(r.length === 1 && r[0].result && sockets.length === 2, "合成途中出错：重试一次后成功");
+
+    // 校时重签后仍是 5xx 算瞬时故障，再试；403 不再重试（见 17）
+    var reject503 = function (socket) {
+        socket.fireError({ code: 0, message: "notAnUpgrade(503)", type: "unknownError" });
+    };
+    reset();
+    socketScripts.push(reject503, reject503, successScript(fakeAudio(300), 720));
+    httpResponder = httpDateResponder("Date");
+    r = speak(ZH);
+    ok(r.length === 1 && r[0].result && sockets.length === 3 && httpRequests.length === 1,
+        "握手 503：校时重试后仍 503 再重试一次，第三次成功");
+
+    reset();
+    socketScripts.push(reject503, reject503, reject503, reject503);
+    httpResponder = httpDateResponder("Date");
+    r = speak(ZH);
+    ok(r.length === 1 && r[0].error && r[0].error.type === "api" && r[0].error.addtion.kind === "handshake" &&
+        sockets.length === 4 && r[0].error.addtion.retries === 2, "握手一直 503：校时一次加两次重试后报错");
+
+    reset();
+    socketScripts.push(function (socket) {
+        clockOffset += 51000;
+        socket.fireOpen();
+        socket.fireText(textFrame("turn.start"));
+        socket.fireClose(1011, "Internal server error");
+    }, successScript(fakeAudio(300), 720));
+    r = speak(ZH);
+    ok(r.length === 1 && r[0].error && r[0].error.addtion.kind === "closed" && sockets.length === 1,
+        "剩余预算不足 5 秒时不重试，直接报错");
+
+    // 29. 音色读不了当前语言时回退到该语言的内置默认音色
+    reset({ voiceMode: "global", globalVoice: "en-US-AriaNeural" });
+    audio = fakeAudio(600);
+    socketScripts.push(noAudioScript, successScript(audio, 720));
+    r = speak(ZH);
+    ok(r.length === 1 && r[0].result && r[0].result.value === base64(audio), "全局英文音色读中文无音频：回退后合成成功");
+    ok(ssmlOf(sockets[0]).indexOf("(en-US, AriaNeural)") > 0 && ssmlOf(sockets[1]).indexOf(XIAOXIAO_FULL) > 0,
+        "回退：第二条连接改用简体中文的默认音色");
+    ok(r[0].result.raw.voice === "zh-CN-XiaoxiaoNeural" && r[0].result.raw.voice_source === "fallback" &&
+        r[0].result.raw.retries === 1, "回退：raw 记录实际使用的音色与来源");
+    ok(loggedLine("改用默认音色 zh-CN-XiaoxiaoNeural") && loggedLine("done voice=zh-CN-XiaoxiaoNeural(fallback)"),
+        "回退写日志");
+
+    reset({ customVoice: "en-GB-SoniaNeural" });
+    socketScripts.push(noAudioScript, noAudioScript, noAudioScript);
+    r = speak(ZH);
+    ok(r.length === 1 && r[0].error && r[0].error.message === "未返回音频，请换个音色重试" && sockets.length === 3 &&
+        r[0].error.addtion.voice === "zh-CN-XiaoxiaoNeural" && r[0].error.addtion.retries === 2,
+        "回退音色也无音频：再试一次后报错，addtion 记录最后用的音色与重试次数");
+
+    reset({ voiceMode: "global", globalVoice: "en-US-AriaNeural" });
+    socketScripts.push(noAudioScript, successScript(fakeAudio(300), 720), successScript(fakeAudio(300), 720),
+        successScript(fakeAudio(300), 720));
+    r = speak({ text: paragraph, lang: "zh-Hans" });
+    ok(r.length === 1 && r[0].result && sockets.length === 4 &&
+        sockets.slice(1).every(function (sock) { return ssmlOf(sock).indexOf(XIAOXIAO_FULL) > 0; }),
+        "分段：第一段回退后，后面的段直接用回退音色");
+
+    reset({ customVoice: "fr-FR-HenriNeural" });
+    socketScripts.push(noAudioScript, noAudioScript);
+    r = speak({ text: "nuqneH", lang: "tlh" });
+    ok(r.length === 1 && r[0].error && r[0].error.type === "api" && sockets.length === 2 &&
+        ssmlOf(sockets[1]).indexOf("(fr-FR, HenriNeural)") > 0, "表外语言没有默认音色可回退，只用原音色重试一次");
+
+    reset({ voiceMode: "global", globalVoice: "en-US-AriaNeural" });
+    socketScripts.push(noAudioScript, noAudioScript);
+    r = validate();
+    ok(r.length === 1 && r[0].result === false && sockets.length === 2 &&
+        sockets.every(function (sock) { return ssmlOf(sock).indexOf("(en-US, AriaNeural)") > 0; }),
+        "pluginValidate 无音频时不回退到别的音色，验证的就是用户选的音色");
 
     print("");
     if (failures.length === 0) {

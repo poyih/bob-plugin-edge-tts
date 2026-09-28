@@ -18,6 +18,10 @@ var OPEN_TIMEOUT = 10;
 // 握手之后连续收不到任何帧的上限。微软是一口气把音频推完的，帧与帧之间只隔几毫秒
 var IDLE_TIMEOUT = 15;
 var SKEW_PROBE_TIMEOUT = 10;
+// 瞬时故障（服务端 5xx、中途关闭、断流、连上后没数据）整次朗读最多再试这么多次；
+// 剩余预算不足 RETRY_MIN_REMAINING_MS 就不再重试，直接把错误交回 Bob
+var MAX_TRANSIENT_RETRIES = 2;
+var RETRY_MIN_REMAINING_MS = 5000;
 
 var MESSAGE_REJECTED = "微软接口拒绝连接，请检查系统时间；若持续失败请更新插件";
 var MESSAGE_NO_AUDIO = "未返回音频，请换个音色重试";
@@ -779,6 +783,9 @@ function failureToError(failure, context) {
     if (context.skew) {
         detail.clockProbe = context.skew;
     }
+    if (typeof context.retries === "number") {
+        detail.retries = context.retries;
+    }
 
     if (failure.kind === "handshake") {
         return makeError("api", MESSAGE_REJECTED, detail);
@@ -817,20 +824,63 @@ function failureToError(failure, context) {
 
 // ---------------------------------------------------------------- 合成
 
-// 合成一段。握手被拒时测一次时钟偏差、重签、再试一次；整次朗读只兜底一次。
+// Bob 的 error.code 恒为 0，HTTP 状态码只出现在 message 里（如 notAnUpgrade(503)），两处都看
+function isServerError(error) {
+    if (!error) {
+        return false;
+    }
+    if (typeof error.code === "number" && error.code >= 500 && error.code <= 599) {
+        return true;
+    }
+    return /\b5\d\d\b/.test(String(error.message || ""));
+}
+
+// 换条连接再试就可能成功的故障：服务端 5xx、中途关闭（音色不存在除外）、断流、连上后没数据。
+// 握手 403、连不上、总超时和插件内部错误重试也没用，不算。
+function isTransientFailure(failure) {
+    var detail = failure.detail || {};
+    if (failure.kind === "stream" || failure.kind === "stalled") {
+        return true;
+    }
+    if (failure.kind === "closed") {
+        return !/unsupported voice/i.test(detail.closeReason || "");
+    }
+    if (failure.kind === "handshake") {
+        return isServerError(detail.error);
+    }
+    return false;
+}
+
+// 合成一段。失败时按顺序兜底：握手被拒先校时重签一次（整次朗读只做一次）；音色读不了这种
+// 语言就换成该语言的内置默认音色；瞬时故障最多再试 MAX_TRANSIENT_RETRIES 次。
+// 每次重试都要求剩余预算还够，不然直接报错，免得撞上 Bob 的超时。
 function synthesizeSegment(job, index, callback) {
     var context = {
         voice: job.voice,
         segmentIndex: index,
         segmentCount: job.segments.length
     };
+    var position = "第 " + (index + 1) + "/" + job.segments.length + " 段";
+
+    function fail(failure) {
+        context.voice = job.voice;
+        context.retries = job.retries;
+        callback(failureToError(failure, context));
+    }
+
+    function retry(reason) {
+        job.retries += 1;
+        logInfo(position + " " + reason + "，第 " + job.retries + " 次重试");
+        attempt();
+    }
 
     function attempt() {
         var remainingMs = job.deadline - nowMs();
         if (remainingMs <= 0) {
             callback(makeError("network",
                 "文本较长，" + Math.round(job.budgetMs / 1000) + " 秒内没有合成完，请分几次朗读",
-                { kind: "budget", voice: job.voice, segment: index + 1, segments: job.segments.length }));
+                { kind: "budget", voice: job.voice, segment: index + 1, segments: job.segments.length,
+                    retries: job.retries }));
             return;
         }
         connectOnce({
@@ -843,30 +893,50 @@ function synthesizeSegment(job, index, callback) {
                 callback(null, audio);
                 return;
             }
-            if (failure.kind !== "handshake" || job.skewProbed) {
-                callback(failureToError(failure, context));
+            if (failure.kind === "handshake" && !job.skewProbed) {
+                job.skewProbed = true;
+                logInfo("握手失败，检查本机时钟后重试一次 detail=" + oneLine(JSON.stringify(failure.detail)));
+                probeClockSkew(function (probe) {
+                    context.skew = probe;
+                    if (!probe.reachable) {
+                        var detail = failure.detail || {};
+                        detail.kind = "unreachable";
+                        detail.voice = job.voice;
+                        detail.clockProbe = probe;
+                        callback(makeError("network", "连接不上微软语音服务，请检查网络或代理设置", detail));
+                        return;
+                    }
+                    if (typeof probe.skewMs === "number") {
+                        clockSkewMs = probe.skewMs;
+                        logInfo("本机时钟与服务器相差 " + Math.round(probe.skewMs / 1000) + " 秒，已按服务器时间重新签名");
+                    } else {
+                        logInfo("音色列表接口没有返回可用的 Date 头，按原时间重试一次");
+                    }
+                    attempt();
+                });
                 return;
             }
-            job.skewProbed = true;
-            logInfo("握手失败，检查本机时钟后重试一次 detail=" + oneLine(JSON.stringify(failure.detail)));
-            probeClockSkew(function (probe) {
-                context.skew = probe;
-                if (!probe.reachable) {
-                    var detail = failure.detail || {};
-                    detail.kind = "unreachable";
-                    detail.voice = job.voice;
-                    detail.clockProbe = probe;
-                    callback(makeError("network", "连接不上微软语音服务，请检查网络或代理设置", detail));
-                    return;
-                }
-                if (typeof probe.skewMs === "number") {
-                    clockSkewMs = probe.skewMs;
-                    logInfo("本机时钟与服务器相差 " + Math.round(probe.skewMs / 1000) + " 秒，已按服务器时间重新签名");
-                } else {
-                    logInfo("音色列表接口没有返回可用的 Date 头，按原时间重试一次");
-                }
-                attempt();
-            });
+            var canRetry = job.deadline - nowMs() >= RETRY_MIN_REMAINING_MS;
+            if (failure.kind === "noAudio" && job.fallbackVoice && canRetry) {
+                var fallbackVoice = job.fallbackVoice;
+                job.fallbackVoice = "";
+                job.voice = fallbackVoice;
+                job.voiceName = toVoiceName(fallbackVoice);
+                job.voiceSource = "fallback";
+                retry("音色 " + context.voice + " 读 " + (job.lang || "这种语言") + " 未返回音频，改用默认音色 " + fallbackVoice);
+                return;
+            }
+            if (failure.kind === "noAudio" && !job.noAudioRetried && canRetry) {
+                job.noAudioRetried = true;
+                retry("未返回音频");
+                return;
+            }
+            if (isTransientFailure(failure) && job.transientRetries < MAX_TRANSIENT_RETRIES && canRetry) {
+                job.transientRetries += 1;
+                retry(failure.kind + " 失败 detail=" + oneLine(JSON.stringify(failure.detail), 200));
+                return;
+            }
+            fail(failure);
         });
     }
 
@@ -874,7 +944,7 @@ function synthesizeSegment(job, index, callback) {
 }
 
 // request = { text, lang, voice: { voice, source }, budgetMs }
-// callback(error, { base64, bytes, segments, ms, format })
+// callback(error, { base64, voice, voiceSource, retries, bytes, segments, ms, format, prosody })
 function synthesize(request, callback) {
     var startedAt = nowMs();
     var voice = request.voice.voice;
@@ -892,14 +962,22 @@ function synthesize(request, callback) {
         return;
     }
 
+    var fallback = config.defaultVoiceFor(request.lang);
     var job = {
         voice: voice,
         voiceName: toVoiceName(voice),
+        voiceSource: request.voice.source,
+        lang: request.lang,
+        // 音色读不了当前语言时改用的内置默认音色；本来就是默认音色的话没有可回退的
+        fallbackVoice: fallback && fallback !== voice ? fallback : "",
         prosody: resolveProsody(),
         segments: segments,
         budgetMs: request.budgetMs,
         deadline: startedAt + request.budgetMs,
-        skewProbed: false
+        skewProbed: false,
+        noAudioRetried: false,
+        transientRetries: 0,
+        retries: 0
     };
     var sink = new Base64Sink();
     var index = 0;
@@ -907,8 +985,9 @@ function synthesize(request, callback) {
     function fail(error) {
         logError("failed type=" + error.type +
             " kind=" + ((error.addtion && error.addtion.kind) || "-") +
-            " voice=" + voice + "(" + request.voice.source + ")" +
+            " voice=" + job.voice + "(" + job.voiceSource + ")" +
             " segment=" + (index + 1) + "/" + segments.length +
+            " retries=" + job.retries +
             " ms=" + (nowMs() - startedAt) +
             " detail=" + oneLine(JSON.stringify(error.addtion || {}), 500));
         callback(error, null);
@@ -922,14 +1001,18 @@ function synthesize(request, callback) {
             if (format === "unknown") {
                 logInfo("warn 返回的数据开头不像 mp3，仍交给 Bob 播放");
             }
-            logInfo("done voice=" + voice + "(" + request.voice.source + ")" +
+            logInfo("done voice=" + job.voice + "(" + job.voiceSource + ")" +
                 " lang=" + (request.lang || "-") +
                 " segments=" + segments.length +
+                " retries=" + job.retries +
                 " bytes=" + sink.byteCount +
                 " ms=" + ms +
                 " rate=" + job.prosody.rate + " pitch=" + job.prosody.pitch + " volume=" + job.prosody.volume);
             callback(null, {
                 base64: base64,
+                voice: job.voice,
+                voiceSource: job.voiceSource,
+                retries: job.retries,
                 bytes: sink.byteCount,
                 segments: segments.length,
                 ms: ms,
@@ -1000,8 +1083,9 @@ function tts(query, completion) {
                     type: "base64",
                     value: out.base64,
                     raw: {
-                        voice: voice.voice,
-                        voice_source: voice.source,
+                        voice: out.voice,
+                        voice_source: out.voiceSource,
+                        retries: out.retries,
                         segments: out.segments,
                         bytes: out.bytes,
                         ms: out.ms,
