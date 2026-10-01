@@ -2,6 +2,14 @@
   "identifier": "com.poyih.bob.plugin.edge.tts",
   "versions": [
     {
+      "version": "1.2.1",
+      "desc": "修复长文本超时、音色回退一致性与发布流程",
+      "sha256": "5c0556d7ddf23c4ae2995cdcdc682b45677f80179ce1a39457b7bf0cd0795183",
+      "url": "https://github.com/poyih/bob-plugin-edge-tts/releases/download/v1.2.1/bob-plugin-edge-tts-1.2.1.bobplugin",
+      "minBobVersion": "1.8.0",
+      "timestamp": 1790857962857
+    },
+    {
       "version": "1.2.0",
       "desc": "长文本合成快一倍：开头一两句先出声，其余各段两路并发；修复编号列表的切分",
       "sha256": "ad600bd3eb8c644888a92b34819b63ccd079628293a34b33f651bcb60d6bfd8f",
