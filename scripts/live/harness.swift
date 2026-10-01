@@ -1,4 +1,4 @@
-// 联网冒烟测试用的宿主：用系统的 JavaScriptCore 加载插件的 config.js / main.js，
+// 联网冒烟测试用的宿主：用系统的 JavaScriptCore 加载插件模块，
 // 把 $websocket / $http / $timer / $log / $data 接到真实网络上，模拟 Bob 的插件运行时。
 //
 // 它验证的是插件自己的协议实现（签名、消息、帧解析、分段拼接、时钟兜底），
@@ -376,7 +376,7 @@ function __report(value) {
 """
 context.evaluateScript(glue)
 
-for name in ["config.js", "sha256.js", "text.js", "main.js"] {
+for name in ["config.js", "sha256.js", "utils.js", "text.js", "options.js", "protocol.js", "connection.js", "synthesis.js", "main.js"] {
     let source = try! String(contentsOf: sourceDir.appendingPathComponent(name), encoding: .utf8)
     call("__load", [name, source])
 }

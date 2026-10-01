@@ -1,6 +1,6 @@
 {
     "identifier": "com.poyih.bob.plugin.edge.tts",
-    "version": "1.2.0",
+    "version": "1.2.1",
     "category": "tts",
     "name": "Microsoft Edge 语音合成",
     "summary": "免 API Key 调用微软 Edge 浏览器「大声朗读」的语音合成接口，国内直连，覆盖近 80 种语言。非官方接口，微软可能随时变更。",
@@ -26,7 +26,7 @@
             "type": "menu",
             "title": "全局音色",
             "defaultValue": "en-US-EmmaMultilingualNeural",
-            "desc": "仅在音色模式为「全局固定」时生效。Multilingual 系列能读多种语言；普通音色只能读自己的语言（中日韩音色还能读英文），读别的语言会提示「未返回音频」。",
+            "desc": "仅在音色模式为「全局固定」时生效。Multilingual 系列能读多种语言；普通音色只能读自己的语言（中日韩音色还能读英文），读不了时会改用当前语言的默认音色重新合成整篇。",
             "menuValues": [
                 { "title": "Emma Multilingual — 女声，多语言，开朗清晰", "value": "en-US-EmmaMultilingualNeural" },
                 { "title": "Ava Multilingual — 女声，多语言，亲切有表现力", "value": "en-US-AvaMultilingualNeural" },

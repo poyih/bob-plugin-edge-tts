@@ -33,7 +33,7 @@ def version_tuple(value: str) -> tuple:
 
 def main() -> int:
     info = json.loads((SRC / "info.json").read_text(encoding="utf-8"))
-    main_js = (SRC / "main.js").read_text(encoding="utf-8")
+    main_js = (SRC / "main.js").read_text(encoding="utf-8") + (SRC / "options.js").read_text(encoding="utf-8")
     config_js = (SRC / "config.js").read_text(encoding="utf-8")
     problems: list[str] = []
 

@@ -8,7 +8,7 @@
 ## 特点
 
 - **按语言自动选音色**：内置 79 种语言的默认音色。简中、繁中、粤语、英、日、韩有单独的菜单，其他语言可以在「按语言指定音色」里写 `fr=fr-FR-HenriNeural` 这样的映射，也可以让一个 Multilingual 音色读所有语言。
-- **长文本合成得快**：按 3000 字节尽量在句末标点处切开，列表编号不会被切到上一段末尾。900 字节以上的文本先单独合成开头一两句，出声后其余各段两路并发，按顺序拼成一段 mp3。在 Bob 里实测，约 1000 字的中文从 6.2 秒降到 3.2 秒，约 3000 字的从 12.5 秒降到 5.9 秒，一句话的短文本不受影响。
+- **长文本合成得快**：按 3000 字节尽量在句末标点处切开，列表编号不会被切到上一段末尾。900 字节以上的文本先单独合成开头一两句，收到首段音频后启动其余分段，两路并发并按顺序拼成一段 mp3。全部合成完成后交给 Bob 播放。在 Bob 里实测，约 1000 字的中文从 6.2 秒降到 3.2 秒，约 3000 字的从 12.5 秒降到 5.9 秒，一句话的短文本不受影响。
 - **系统时间不准也能用**：握手被拒时自动向微软取服务器时间，校准后重新签名再试。
 - **遇到故障自己兜底**：服务端 5xx、中途断开、连上后没数据时换一条连接再试，整次朗读最多两次；选的音色读不了当前语言时自动改用该语言的默认音色。
 - **断网不会卡住**：握手 10 秒没完成、连上后 15 秒收不到数据都有看门狗，整次朗读 55 秒内必有结果。各种失败都有明确提示，见[常见报错](#常见报错)。
@@ -30,7 +30,7 @@
 | 自定义音色 | 填音色的 ShortName（如 `fr-FR-HenriNeural`），填了就对所有语言生效 |
 | 语速 / 音调 / 音量 | 语速 -50% 到 +100%，音调 -50Hz 到 +50Hz，音量是相对音色默认音量的增减 |
 
-音色优先级：自定义音色 > 当前语言的菜单 > 按语言指定 > 全局音色 > 内置默认音色。选中的音色读不了当前语言（例如用英文音色读中文）时，插件会自动改用该语言的内置默认音色再合成一次，日志里会记一行。
+音色优先级：自定义音色 > 当前语言的菜单 > 按语言指定 > 全局音色 > 内置默认音色。选中的音色读不了当前语言（例如用英文音色读中文）时，插件会自动改用该语言的内置默认音色，取消旧音色的连接并重新合成全部分段，让一条朗读始终使用同一音色。回退沿用原来的 55 秒总预算，日志里会记一行。
 
 ## 音色
 
@@ -96,12 +96,13 @@ swiftc -O scripts/live/harness.swift -o /tmp/edge-harness
 
 ## 开发
 
-插件逻辑在 `src/main.js`，协议常量和音色表在 `src/config.js`，SHA-256 在 `src/sha256.js`，文本清理与分段在 `src/text.js`。
+Bob 插件入口在 `src/main.js`；`src/protocol.js` 负责签名、消息和帧解析，`src/connection.js` 负责连接看门狗及可取消的校时请求，`src/synthesis.js` 负责整次任务的预算、重试、音色回退与并发调度。设置解析在 `src/options.js`，公共工具在 `src/utils.js`。协议常量和音色表仍在 `src/config.js`，SHA-256 在 `src/sha256.js`，文本清理与分段在 `src/text.js`。
 
 `docs/tasks/` 下的三张任务卡是开发时交给 Claude Code 的指令，都已完成，留作设计记录；真机实测的结论在 [docs/poc-findings.md](docs/poc-findings.md)。要在 Bob 里复现重试、超时这类故障，用 `scripts/live/fake_edge.py` 扮演出故障的服务端，用法见文件开头。
 
 ```bash
-make test       # 语法检查 + info.json 校验 + 离线单测（macOS 用 Bob 同款 JavaScriptCore，其他系统自动改用 Node，以 jsc 为准）
+make test       # 语法检查、info.json 校验、插件回归测试、发布/appcast 集成测试；全部离线
+make test-memory # Node GC 检查：已拼接的原始音频在整次任务结束前释放；需安装 Node
 make voices     # 联网核对内置音色是否还在微软的音色列表里
 make upstream   # 联网对照上游 edge-tts 的协议常量，看 config.js 有没有落后
 make pack       # 打包到 dist/，并打印 sha256
@@ -111,10 +112,14 @@ make install    # 打包并交给 Bob 安装
 发版：改 `src/info.json` 的 `version` 并合并到 main，然后打带注释的标签并推送：
 
 ```bash
-git tag -a v1.1.0 -m "更新说明" && git push origin v1.1.0
+git tag -a v1.2.1 -m "更新说明" && git push origin v1.2.1
 ```
 
-Release 工作流会 `make pack`、创建 `v1.1.0` Release 并上传 `dist/*.bobplugin`，再把 sha256 和下载地址登记进 `appcast.json` 推回 main；标签注释的第一行是 appcast 里的更新说明，全文是 Release 说明。推不了 main 时它会推到 `appcast/v1.1.0` 分支并尝试开 PR。不方便在本地推标签时，也可以在 Actions 页手动运行 Release 工作流并填写更新说明，它会按 `src/info.json` 的版本自己打标签再发版。手动发版仍可按 `make pack` → 创建 Release 上传 `dist/*.bobplugin` → `make appcast DESC="更新说明"` → 提交 `appcast.json` 的顺序做，Release 资产上传之前不要登记 appcast。
+Release 工作流始终切换到标签指向的提交再 `make pack`，保存确切包路径后创建 Release 并上传，最后从包内 `info.json` 读取版本、identifier 和最低 Bob 版本，登记 `appcast.json` 并推回 main。即使 main 已升级到下一版本，登记的仍是刚发布的包。标签注释的第一行是 appcast 更新说明，全文是 Release 说明；引号、反引号和 `$` 均作为原文处理。
+
+重复运行时，已有同版本资产会先下载并核对文件内容：一致就复用原包及其 sha256，不重新上传；内容不同就失败，需改版本号重新发布。appcast 也拒绝同一版本换成不同 sha256，一致的重复登记保留原发布时间。推不了 main 时会推到 `appcast/v1.2.1` 分支并尝试开 PR。在 Actions 页手动运行 Release 时，工作流按当前所选分支的版本查找或创建标签，然后固定从该标签构建。
+
+手动发版可按 `make pack` → 创建 Release 上传插件包 → `make appcast DESC="更新说明"` → 提交 `appcast.json` 的顺序做，Release 资产上传之前不要登记 appcast。登记旧版本时可显式指定包路径：`make appcast BUNDLE=dist/bob-plugin-edge-tts-1.2.0.bobplugin DESC="更新说明"`；较复杂的说明也可用 `python3 scripts/update_appcast.py --bundle 包路径 --desc-file 说明文件`。
 
 Bob 运行时与文档有几处出入：握手头要放在单数的 `header` 里，`$data` 没有 `length`，关闭连接要写 `close({})`，连接失败时没有任何回调，`timeoutInterval` 不起作用，朗读的文本里换行会被换成空格，从插件入口建立的 WebSocket 连接收音频比在回调里建立的慢三到四倍。实测记录见 [docs/poc-findings.md](docs/poc-findings.md)。
 

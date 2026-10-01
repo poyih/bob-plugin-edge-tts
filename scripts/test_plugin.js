@@ -280,12 +280,24 @@ globalThis.$websocket = {
 
 var httpRequests = [];
 var httpResponder = null;
+var signals = [];
+
+globalThis.$signal = {
+    new: function () {
+        var signal = { sends: 0, send: function () { this.sends += 1; } };
+        signals.push(signal);
+        return signal;
+    }
+};
 
 globalThis.$http = {
     request: function (req) {
         httpRequests.push(req);
         var resp = httpResponder ? httpResponder(req) : { error: { message: "offline" }, response: null };
-        req.handler(resp);
+        // 返回 undefined 表示请求尚未完成，用例可以稍后调用 handler。
+        if (resp !== undefined) {
+            req.handler(resp);
+        }
     }
 };
 
@@ -311,7 +323,12 @@ function loadModule(name) {
 
 var config = loadModule("config.js");
 loadModule("sha256.js");
+loadModule("utils.js");
 loadModule("text.js");
+loadModule("options.js");
+loadModule("protocol.js");
+loadModule("connection.js");
+loadModule("synthesis.js");
 var plugin = loadModule("main.js");
 var T = plugin.__test;
 
@@ -452,6 +469,7 @@ function reset(overrides) {
     socketScripts = [];
     httpRequests = [];
     httpResponder = null;
+    signals = [];
     clockOffset = 0;
     echoCloseEvent = true;
     T.setClockSkewMs(0);
@@ -944,8 +962,8 @@ var XIAOXIAO_FULL = "Microsoft Server Speech Text to Speech Voice (zh-CN, Xiaoxi
     eq(sockets[0].closeArgTypes[0], "object", "close 传入对象参数（Bob 1.21.0 不带参数会记未捕获异常）");
     eq(activeTimers(), 0, "成功后定时器被取消");
     eq(T.activeSocketCount(), 0, "成功后不再持有 socket");
-    eq(timers.length, 1, "顺利合成时每条连接只挂过一个定时器");
-    ok(timers[0].interval <= 10 && timers[0].interval > 9.9 && timers[0].repeats === false,
+    eq(timers.length, 2, "顺利合成时挂一个总预算定时器和一个连接看门狗");
+    ok(timers[1].interval <= 10 && timers[1].interval > 9.9 && timers[1].repeats === false,
         "看门狗先按 10 秒的握手期限上弦、不重复");
     eq(sockets[0].params.timeoutInterval, 30, "传给 Bob 的 timeoutInterval 是 30 秒");
     ok(loggedLine("done voice=zh-CN-XiaoxiaoNeural(table)") && loggedLine("segments=1") &&
@@ -1102,12 +1120,12 @@ var XIAOXIAO_FULL = "Microsoft Server Speech Text to Speech Voice (zh-CN, Xiaoxi
     socketScripts.push(openOnlyScript);
     r = speak(ZH);
     eq(r.length, 0, "超时：收不到 turn.end 时先不回调");
-    eq(activeTimers(), 1, "超时：定时器在等待");
+    eq(activeTimers(), 2, "超时：连接与总预算定时器在等待");
     eq(T.activeSocketCount(), 1, "超时：等待期间持有 socket");
     sockets[0].fireText(textFrame("turn.start"));
     sockets[0].fireData(makeData(binaryFrame(AUDIO_HEADER, fakeAudio(720))));
     eq(r.length, 0, "超时：收到部分音频但没有 turn.end，仍不回调");
-    ok(fireActiveTimer() && r.length === 0 && activeTimers() === 1, "超时：期限没到时看门狗只会重新上弦");
+    ok(fireActiveTimer() && r.length === 0 && activeTimers() === 2, "超时：期限没到时看门狗只会重新上弦");
     clockOffset += 30001;
     ok(fireActiveTimer(), "超时：30 秒到点");
     eq(r.length, 1, "超时：定时器触发后回调一次，不会挂死");
@@ -1125,7 +1143,7 @@ var XIAOXIAO_FULL = "Microsoft Server Speech Text to Speech Voice (zh-CN, Xiaoxi
     r = speak(ZH);
     ok(r.length === 0 && sockets.length === 1 && sockets[0].openCalls === 1, "握手没有结果时等待");
     clockOffset += 5000;
-    ok(fireActiveTimer() && r.length === 0 && activeTimers() === 1, "握手超时：没到 10 秒时看门狗只会重新上弦");
+    ok(fireActiveTimer() && r.length === 0 && activeTimers() === 2, "握手超时：没到 10 秒时看门狗只会重新上弦");
     clockOffset += 5001;
     ok(fireActiveTimer(), "握手超时：10 秒到点");
     ok(r.length === 1 && r[0].error.type === "network" && r[0].error.addtion.opened === false, "握手阶段超时同样映射为 network");
@@ -1142,10 +1160,10 @@ var XIAOXIAO_FULL = "Microsoft Server Speech Text to Speech Voice (zh-CN, Xiaoxi
     clockOffset += 9000;
     sockets[0].fireData(makeData(binaryFrame(AUDIO_HEADER, fakeAudio(720))));
     clockOffset += 9000;
-    ok(fireActiveTimer() && r.length === 0 && activeTimers() === 1, "空闲超时：距上一帧不到 15 秒时只会重新上弦");
+    ok(fireActiveTimer() && r.length === 0 && activeTimers() === 2, "空闲超时：距上一帧不到 15 秒时只会重新上弦");
     clockOffset += 6001;
     ok(fireActiveTimer(), "空闲超时：距上一帧 15 秒到点");
-    ok(r.length === 0 && sockets.length === 2 && sockets[0].closeCalls === 1 && activeTimers() === 1,
+    ok(r.length === 0 && sockets.length === 2 && sockets[0].closeCalls === 1 && activeTimers() === 2,
         "空闲超时属于瞬时故障：关掉这条连接，换一条重试");
     ok(loggedLine("stalled 失败") && loggedLine("第 1 次重试"), "空闲超时：日志记录重试");
     audio = fakeAudio(720);
@@ -1180,7 +1198,7 @@ var XIAOXIAO_FULL = "Microsoft Server Speech Text to Speech Voice (zh-CN, Xiaoxi
         sockets[0].fireData(makeData(binaryFrame(AUDIO_HEADER, fakeAudio(720))));
         fireActiveTimer();
     }
-    ok(r.length === 0 && activeTimers() === 1, "持续收到数据时不会误判为空闲");
+    ok(r.length === 0 && activeTimers() === 2, "持续收到数据时不会误判为空闲");
     clockOffset += 600;
     fireActiveTimer();
     ok(r.length === 1 && r[0].error.addtion.kind === "timeout" && r[0].error.addtion.audioBytes === 3600,
@@ -1308,8 +1326,8 @@ var XIAOXIAO_FULL = "Microsoft Server Speech Text to Speech Voice (zh-CN, Xiaoxi
     sockets[1].fireData(makeData(binaryFrame(AUDIO_HEADER, fakeAudio(720))));
     clockOffset += 1001;
     fireActiveTimer();
-    ok(r.length === 1 && r[0].error.type === "network" && r[0].error.addtion.kind === "timeout" &&
-        r[0].error.addtion.timeoutSeconds <= 15, "缩短后的超时触发时回调 network");
+    ok(r.length === 1 && r[0].error.type === "network" && r[0].error.addtion.kind === "budget",
+        "缩短后的连接在总预算到期时回调 network");
 
     // 25. 没有 $timer / $websocket 的运行时
     reset();
@@ -1690,6 +1708,102 @@ var XIAOXIAO_FULL = "Microsoft Server Speech Text to Speech Voice (zh-CN, Xiaoxi
     ok(r.length === 1 && r[0].result && r[0].result.value === base64(fa.concat(fb, fc, fd)) && r[0].result.raw.segments === 4,
         "短首段与其余各段按顺序拼成一段音频");
     ok(T.activeSocketCount() === 0 && activeTimers() === 0, "结束后连接与定时器都已清理");
+
+    // 32. 校时也属于整次朗读的预算，HTTP 回调迟到不能更新时钟或重新建立连接。
+    reset();
+    var budgetText = repeat("a", 13000);
+    for (i = 0; i < 5; i++) {
+        socketScripts.push(openOnlyScript);
+    }
+    socketScripts.push(function () {});
+    httpResponder = function () {};
+    r = speak({ text: budgetText, lang: "en" });
+    function sendBudgetAudio(index) {
+        sockets[index].fireData(makeData(binaryFrame(AUDIO_HEADER, fakeAudio(32))));
+    }
+    sendBudgetAudio(0);
+    sockets[0].fireText(textFrame("turn.end"));
+    [10000, 20000].forEach(function (ms) {
+        clockOffset = ms;
+        sendBudgetAudio(1);
+        sendBudgetAudio(2);
+    });
+    clockOffset = 25000;
+    sockets[1].fireText(textFrame("turn.end"));
+    sockets[2].fireText(textFrame("turn.end"));
+    [35000, 45000].forEach(function (ms) {
+        clockOffset = ms;
+        sendBudgetAudio(3);
+        sendBudgetAudio(4);
+    });
+    clockOffset = 50000;
+    sockets[3].fireText(textFrame("turn.end"));
+    sockets[4].fireText(textFrame("turn.end"));
+    clockOffset = 54000;
+    sockets[5].fireError({ code: 403, message: "notAnUpgrade(403)" });
+    ok(httpRequests.length === 1 && httpRequests[0].timeout <= 1.1,
+        "校时：第 54 秒握手失败时，HTTP 超时不超过剩余预算");
+    clockOffset = 55001;
+    fireActiveTimer();
+    ok(r.length === 1 && r[0].error && r[0].error.addtion.kind === "budget" && activeTimers() === 0,
+        "校时：HTTP 没有回调也在 55 秒预算到期时结束朗读");
+    ok(httpRequests[0].cancelSignal && httpRequests[0].cancelSignal.sends === 1,
+        "校时：预算到期会取消仍在进行的 HTTP 请求");
+    clockOffset = 64000;
+    httpRequests[0].handler({ response: { statusCode: 200, headers: { Date: "Thu, 01 Jan 1970 00:00:00 GMT" } } });
+    ok(r.length === 1 && sockets.length === 6 && T.getClockSkewMs() === 0,
+        "校时：迟到的 HTTP 响应不再回调、重试或修改时钟偏差");
+
+    reset();
+    socketScripts.push(rejectScript);
+    httpResponder = function () {};
+    r = speak(ZH);
+    clockOffset = 10001;
+    fireActiveTimer();
+    ok(r.length === 1 && r[0].error.type === "network" && httpRequests[0].cancelSignal.sends === 1 &&
+        activeTimers() === 0, "校时：宿主 HTTP 不回调时，校时看门狗在 10 秒内结束请求");
+
+    reset();
+    socketScripts.push(openOnlyScript, function () {}, openOnlyScript);
+    httpResponder = function () {};
+    r = speak({ text: repeat("a", 6500), lang: "en" });
+    sockets[0].fireData(makeData(binaryFrame(AUDIO_HEADER, fakeAudio(32))));
+    sockets[0].fireText(textFrame("turn.end"));
+    sockets[1].fireError({ code: 403, message: "notAnUpgrade(403)" });
+    sockets[2].fireClose(1007, "Unsupported voice test");
+    ok(r.length === 1 && r[0].error.type === "param" && httpRequests[0].cancelSignal.sends === 1 &&
+        activeTimers() === 0, "校时：其他段最终失败时，取消仍在进行的校时请求");
+    httpRequests[0].handler(httpDateResponder("Date")());
+    ok(r.length === 1 && T.getClockSkewMs() === 0, "校时：任务失败后迟到的响应不会恢复合成");
+
+    // 33. 后续段换音色时，已完成和在途的旧音色音频全部丢弃，统一重做。
+    reset({ voiceMode: "global", globalVoice: "en-US-AriaNeural" });
+    var mixedText = repeat("Intro. ", 45) + repeat("中文正文。", 250);
+    for (i = 0; i < 6; i++) { socketScripts.push(openOnlyScript); }
+    r = speak({ text: mixedText, lang: "zh-Hans" });
+    sockets[0].fireData(makeData(binaryFrame(AUDIO_HEADER, fakeAudio(50))));
+    sockets[0].fireText(textFrame("turn.end"));
+    var oldThird = sockets[2];
+    sockets[1].fireText(textFrame("turn.end"));
+    ok(oldThird.closeCalls === 1 && sockets.length === 4 &&
+        ssmlOf(sockets[3]).indexOf(">" + T.prepareSegments(mixedText)[0] + "</prosody>") > 0,
+        "后续段回退：取消旧音色在途段，从首段重新合成");
+    oldThird.fireData(makeData(binaryFrame(AUDIO_HEADER, fakeAudio(80))));
+    oldThird.fireText(textFrame("turn.end"));
+    ok(r.length === 0 && sockets.length === 4,
+        "后续段回退：旧音色迟到的音频和结束帧不会进入新结果");
+    var fallbackA = fakeAudio(64);
+    var fallbackB = fakeAudio(45);
+    var fallbackC = fakeAudio(32);
+    sockets[3].fireData(makeData(binaryFrame(AUDIO_HEADER, fallbackA)));
+    sockets[3].fireText(textFrame("turn.end"));
+    sockets[5].fireData(makeData(binaryFrame(AUDIO_HEADER, fallbackC)));
+    sockets[5].fireText(textFrame("turn.end"));
+    sockets[4].fireData(makeData(binaryFrame(AUDIO_HEADER, fallbackB)));
+    sockets[4].fireText(textFrame("turn.end"));
+    ok(r.length === 1 && r[0].result && r[0].result.value === base64(fallbackA.concat(fallbackB, fallbackC)) &&
+        r[0].result.raw.voice === "zh-CN-XiaoxiaoNeural" && r[0].result.raw.retries === 1,
+        "后续段回退：返回的全部音频都使用同一默认音色，raw 与实际一致");
 
     print("");
     if (failures.length === 0) {
