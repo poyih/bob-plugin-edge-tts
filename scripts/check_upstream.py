@@ -3,7 +3,7 @@
 
 微软每隔几个月就收紧一次 Edge「大声朗读」接口的校验（浏览器版本号、端点、握手头），
 上游 edge-tts 一般几天内跟进，新值都写在它的 src/edge_tts/constants.py 里。这个脚本把该文件
-拉下来，与 src/config.js 的常量和 src/main.js 里 buildHeaders() 发出的握手头逐项比对，
+拉下来，与 src/config.js 的常量和 src/protocol.js 里 buildHeaders() 发出的握手头逐项比对，
 有出入就说明该更新插件了。只用标准库；上游文件用 ast 读字面量，不执行它的代码。
 
 用法：
@@ -254,12 +254,12 @@ def read_config(config_js: str, problems: list) -> dict:
     return env
 
 
-def read_plugin_headers(main_js: str, config: dict, problems: list) -> dict:
-    """解析 main.js 里 buildHeaders() 返回的对象字面量。值算不出来（比如随机 Cookie）记为 DYNAMIC。"""
-    match = re.search(r"function\s+buildHeaders\s*\(\s*\)\s*\{\s*return\s*", main_js)
-    literal = js_scan(main_js, match.end(), False) if match and main_js.startswith("{", match.end()) else None
+def read_plugin_headers(protocol_js: str, config: dict, problems: list) -> dict:
+    """解析 protocol.js 里 buildHeaders() 返回的对象字面量。值算不出来（比如随机 Cookie）记为 DYNAMIC。"""
+    match = re.search(r"function\s+buildHeaders\s*\(\s*\)\s*\{\s*return\s*", protocol_js)
+    literal = js_scan(protocol_js, match.end(), False) if match and protocol_js.startswith("{", match.end()) else None
     if not literal:
-        problems.append("src/main.js 里找不到 buildHeaders() 返回的对象字面量")
+        problems.append("src/protocol.js 里找不到 buildHeaders() 返回的对象字面量")
         return {}
     headers: dict = {}
     for entry in split_top_level(literal[1:-1], ","):
@@ -373,7 +373,7 @@ def write_report(path: Path, rows: list, problems: list, upstream_version: str,
     elif problems or any(not row["ok"] for row in rows):
         lines += [
             "### 处理办法", "",
-            "1. 把上游的新值写进 `src/config.js` 对应的常量；握手头有增减时同步改 `src/main.js` 的 `buildHeaders()`。",
+            "1. 把上游的新值写进 `src/config.js` 对应的常量；握手头有增减时同步改 `src/protocol.js` 的 `buildHeaders()`。",
             "2. `make test` 通过后用 `make voices` 复核音色，再装进 Bob 真机朗读一次。",
             "3. 改 `src/info.json` 的 `version`，按 README「开发」一节发版。",
             "", "对照方法见 README「接口失效时」。",
@@ -397,10 +397,10 @@ def main() -> int:
     args = parser.parse_args()
 
     config_js = (SRC / "config.js").read_text(encoding="utf-8")
-    main_js = (SRC / "main.js").read_text(encoding="utf-8")
+    protocol_js = (SRC / "protocol.js").read_text(encoding="utf-8")
     problems: list = []
     config = read_config(config_js, problems)
-    plugin_headers = read_plugin_headers(main_js, config, problems)
+    plugin_headers = read_plugin_headers(protocol_js, config, problems)
     noted_version = config_noted_version(config_js)
     report = Path(args.report) if args.report else None
 

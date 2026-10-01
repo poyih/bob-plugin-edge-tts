@@ -3,7 +3,7 @@ name: Release
 # 发版工作流：打包、创建 GitHub Release 并上传 .bobplugin，再把 sha256 和下载地址登记进 appcast.json
 # 推回 main（推不了就推到 appcast/<tag> 分支并尝试开 PR）。两种触发方式：
 #   1. 本地推送标签：改 src/info.json 的 version 并合并到 main，然后
-#        git tag -a v1.1.0 -m "更新说明" && git push origin v1.1.0
+#        git tag -a v1.2.1 -m "更新说明" && git push origin v1.2.1
 #      标签注释的第一行是 appcast 里的更新说明，全文是 Release 说明。
 #   2. Actions 页手动运行（Run workflow），填更新说明：工作流按 src/info.json 的 version 自己打
 #      带注释的标签 v<version> 推上去，然后同样发版。适合不方便在本地推标签的时候。
@@ -33,6 +33,12 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: 保存发布工具
+        run: |
+          # 手动发布旧标签时，旧源码不一定包含最新发布工具，切换提交前先保存。
+          mkdir -p "$RUNNER_TEMP/edge-release-tools"
+          cp scripts/update_appcast.py scripts/check_release_asset.py "$RUNNER_TEMP/edge-release-tools/"
+
       - name: 确定标签
         id: tag
         env:
@@ -43,77 +49,75 @@ jobs:
             tag="v$version"
             if git ls-remote --exit-code --tags origin "refs/tags/$tag" >/dev/null 2>&1; then
               echo "标签 $tag 已存在，直接用它"
-              git fetch origin "refs/tags/$tag:refs/tags/$tag"
             else
               git config user.name "github-actions[bot]"
               git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
               [ -n "$NOTES" ] || NOTES="$tag"
-              printf '%s\n' "$NOTES" > tag-message.txt
-              git tag -a "$tag" -F tag-message.txt
+              printf '%s\n' "$NOTES" > "$RUNNER_TEMP/edge-tag-message.txt"
+              git tag -a "$tag" -F "$RUNNER_TEMP/edge-tag-message.txt"
               git push origin "$tag"
               echo "已在 $(git rev-parse --short HEAD) 上打标签 $tag 并推送"
             fi
           else
             tag="$GITHUB_REF_NAME"
-            if [ "v$version" != "$tag" ]; then
-              echo "::error::标签 $tag 与 src/info.json 的 version $version 不一致，先改 version 再打标签"
-              exit 1
-            fi
+          fi
+          # 不论从哪个分支手动运行，都固定构建标签指向的提交；同时取回带注释的标签对象。
+          git fetch --force origin "refs/tags/$tag:refs/tags/$tag"
+          git checkout --detach "$tag^{commit}"
+          version=$(python3 -c 'import json; print(json.load(open("src/info.json"))["version"])')
+          if [ "v$version" != "$tag" ]; then
+            echo "::error::标签 $tag 与包内版本 $version 不一致，先改 version 再打标签"
+            exit 1
           fi
           echo "tag=$tag" >> "$GITHUB_OUTPUT"
 
       - name: 打包
-        run: make pack
+        id: bundle
+        run: |
+          make pack
+          version=$(python3 -c 'import json; print(json.load(open("src/info.json"))["version"])')
+          name="bob-plugin-edge-tts-$version.bobplugin"
+          cp "dist/$name" "$RUNNER_TEMP/$name"
+          echo "path=$RUNNER_TEMP/$name" >> "$GITHUB_OUTPUT"
 
       - name: 读取更新说明
-        id: notes
         env:
           TAG: ${{ steps.tag.outputs.tag }}
         run: |
-          # 推送标签触发时，actions/checkout 会把带注释的标签取成指向提交的轻量标签，
-          # 直接读会读到合并提交的标题（v1.2.0 就是这样），先把标签对象强制取回来
-          git fetch --force origin "refs/tags/$TAG:refs/tags/$TAG"
           if [ "$(git cat-file -t "$TAG")" = "tag" ]; then
-            subject=$(git tag -l --format='%(contents:subject)' "$TAG")
-            body=$(git tag -l --format='%(contents:body)' "$TAG")
+            notes=$(git tag -l --format='%(contents)' "$TAG")
           else
             echo "::warning::$TAG 不是带注释的标签，更新说明只写版本号；发版请用 git tag -a"
-            subject=""
-            body=""
+            notes="$TAG"
           fi
-          [ -n "$subject" ] || subject="$TAG"
-          {
-            echo "$subject"
-            if [ -n "$body" ]; then
-              echo
-              echo "$body"
-            fi
-          } > notes.md
-          echo "subject=$subject" >> "$GITHUB_OUTPUT"
+          [ -n "$notes" ] || notes="$TAG"
+          printf '%s\n' "$notes" > "$RUNNER_TEMP/edge-release-notes.md"
+          head -n 1 "$RUNNER_TEMP/edge-release-notes.md" > "$RUNNER_TEMP/edge-release-subject.txt"
           echo "更新说明："
-          cat notes.md
+          cat "$RUNNER_TEMP/edge-release-notes.md"
 
       - name: 创建 GitHub Release 并上传插件包
         env:
           TAG: ${{ steps.tag.outputs.tag }}
+          BUNDLE: ${{ steps.bundle.outputs.path }}
         run: |
-          if gh release view "$TAG" >/dev/null 2>&1; then
-            gh release upload "$TAG" dist/*.bobplugin --clobber
-          else
-            gh release create "$TAG" dist/*.bobplugin \
-              --title "Microsoft Edge 语音合成 $TAG" --notes-file notes.md
-          fi
+          python3 "$RUNNER_TEMP/edge-release-tools/check_release_asset.py" \
+            --bundle "$BUNDLE" --tag "$TAG" --repo "$GITHUB_REPOSITORY" \
+            --notes-file "$RUNNER_TEMP/edge-release-notes.md"
 
       - name: 登记 appcast 并推回 main
         env:
           TAG: ${{ steps.tag.outputs.tag }}
-          SUBJECT: ${{ steps.notes.outputs.subject }}
+          BUNDLE: ${{ steps.bundle.outputs.path }}
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git fetch origin main
           git checkout -B main origin/main
-          make appcast DESC="$SUBJECT"
+          python3 "$RUNNER_TEMP/edge-release-tools/update_appcast.py" \
+            --bundle "$BUNDLE" --tag "$TAG" --repo "$GITHUB_REPOSITORY" \
+            --appcast "$GITHUB_WORKSPACE/appcast.json" \
+            --desc-file "$RUNNER_TEMP/edge-release-subject.txt"
           git add appcast.json
           if git diff --cached --quiet; then
             echo "appcast.json 没有变化"
