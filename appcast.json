@@ -2,6 +2,14 @@
   "identifier": "com.poyih.bob.plugin.edge.tts",
   "versions": [
     {
+      "version": "1.2.2",
+      "desc": "修复微软接口 403，迁移合成端点并更新音色维护检查",
+      "sha256": "9bebae3d84da3c9aad70a08df75257a6319be16f71ec25e3ed8e7140c91f34a2",
+      "url": "https://github.com/poyih/bob-plugin-edge-tts/releases/download/v1.2.2/bob-plugin-edge-tts-1.2.2.bobplugin",
+      "minBobVersion": "1.8.0",
+      "timestamp": 1791783678246
+    },
+    {
       "version": "1.2.1",
       "desc": "修复长文本超时、音色回退一致性与发布流程",
       "sha256": "5c0556d7ddf23c4ae2995cdcdc682b45677f80179ce1a39457b7bf0cd0795183",
