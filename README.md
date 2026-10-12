@@ -36,17 +36,19 @@
 
 普通音色只能读自己的语言（中日韩音色还能读英文），读别的语言时微软不返回音频，插件会改用该语言的默认音色重试；本来就是默认音色的话才提示「未返回音频」。Multilingual 系列能读中、英、日、韩、法、德、西、俄、阿拉伯、印地、泰、越等语言，适合做全局音色。
 
-默认音色：简中晓晓、繁中曉臻、粤语曉曼、英语 Aria、日语七海、韩语 SunHi，其余语言见 [`src/config.js`](src/config.js)。微软的全部 300 多个音色可以用 [edge-tts](https://github.com/rany2/edge-tts) 列出 ShortName（需先装 [uv](https://docs.astral.sh/uv/)）：
+默认音色：简中晓晓、繁中曉臻、粤语曉曼、英语 Aria、日语七海、韩语 SunHi，其余语言见 [`src/config.js`](src/config.js)。在本仓库中可以列出当前合成接口的全部音色 ShortName：
 
 ```bash
-uvx edge-tts --list-voices
+make voices VOICES_ARGS=--list
 ```
+
+音色需要定期核对。`make voices` 会向当前合成接口请求带签名的音色列表，检查内置默认音色和设置菜单；仓库已有每周一次的检查。只有确认某个内置音色已失效，才替换默认音色或移除菜单项。2026-10-12 核对新接口的 321 个音色，插件引用的 127 个全部存在。旧列表多出的 `en-IN-NeerjaExpressiveNeural` 未被插件引用，这次没有需要清理的菜单项。
 
 ## 常见报错
 
 | 提示 | 原因 |
 |---|---|
-| 微软接口拒绝连接 | 自动校准时钟后仍被拒，多半是微软又改了校验，见[接口失效时](#接口失效时) |
+| 微软接口拒绝连接 | 自动校准时钟后仍被拒，可能是微软变更了接口或限制了当前网络；1.2.1 及更早版本请升级到 1.2.2，见[接口失效时](#接口失效时) |
 | 未返回音频 | 音色读不了这种语言且没有可改用的默认音色，或微软偶发不给音频；插件已重试过一次 |
 | 音色 xxx 不存在或已下线 / 音色名称格式无效 | 音色名写错了，或微软下线了这个音色 |
 | 连接不上微软语音服务 | 断网、代理不通或域名解析失败 |
@@ -67,7 +69,7 @@ Bob 报「获取音频失败」而日志里没有 `edge-tts`，说明 Bob 识别
 - **非官方接口，随时可能变**：近两年微软先后加了签名校验、换了端点、开始校验 User-Agent，2026 年仍有间歇性无音频和 503 的报告。历次变更见 [docs/feasibility.md](docs/feasibility.md#风险时间线)。
 - **只有一种音频格式**：24 kHz、48 kbps、单声道 mp3。
 - **没有情感风格和多角色**：接口只接受 Edge 自己会发的 SSML，Azure 的 `express-as` 用不了。
-- **文本会发给微软**：朗读内容经 WebSocket 发到 `speech.platform.bing.com`，不要用它读敏感内容。
+- **文本会发给微软**：朗读内容经 WebSocket 发到 `api.msedgeservices.com`，插件校时用的音色列表请求发到 `speech.platform.bing.com`，不要用它读敏感内容。
 - **云服务器 IP 可能被限流**：家用宽带正常。
 
 ## 免责声明
@@ -76,13 +78,15 @@ Bob 报「获取音频失败」而日志里没有 `edge-tts`，说明 Bob 识别
 
 ## 接口失效时
 
+2026-10-10 起，旧合成地址在部分地区开始返回 403，上游 edge-tts 7.2.8 也受影响，见 [issue #490](https://github.com/rany2/edge-tts/issues/490)。1.2.2 已将合成连接迁移到 `api.msedgeservices.com/tts/cognitiveservices/websocket/v1`，用 `Ocp-Apim-Subscription-Key` 传原客户端令牌；2026-10-12 实测新地址仍接受原 v1 签名。插件继续用旧音色列表校时，开发维护工具 `make voices` 使用新接口的签名列表核对音色。上游尚未迁移时，`make upstream` 会报告 WebSocket 地址不同，不能据此改回旧地址；这次修复仍依赖微软的内部接口，后续可能继续变更。
+
 先用 edge-tts 确认是不是接口本身的问题：
 
 ```bash
 uvx edge-tts --voice zh-CN-XiaoxiaoNeural --text "你好" --write-media /tmp/edge.mp3
 ```
 
-edge-tts 也失败，说明微软改了校验：等上游修复后运行 `make upstream`，它会把上游 `src/edge_tts/constants.py` 里的浏览器版本号、端点和握手头与 `src/config.js` 逐项对照，把列出来的不一致项改掉即可，协议常量都集中在这一个文件里。仓库的定时任务每周一也会自动对照一次并核对音色列表，有出入就开一个带 `upstream-drift` 标签的 issue。GitHub 会停用 60 天没有提交的仓库的定时任务，需要到 Actions 页手动重新启用。
+edge-tts 也失败时，可能是微软变更了接口，也可能是当前网络或地区受限。先检查上游 issue；上游修复后运行 `make upstream`，它会把上游 `src/edge_tts/constants.py` 里的浏览器版本号、端点和握手头与 `src/config.js` 逐项对照，再结合变更说明处理差异，协议常量都集中在这一个文件里。仓库的定时任务每周一也会自动对照一次并核对音色列表，有出入就开一个带 `upstream-drift` 标签的 issue。GitHub 会停用 60 天没有提交的仓库的定时任务，需要到 Actions 页手动重新启用。
 
 edge-tts 正常而插件失败，用联网冒烟测试宿主看插件卡在哪一步：
 

@@ -2,8 +2,9 @@
 //
 // 这是 Edge 浏览器的内部接口，不是公开 API，微软每隔几个月就会收紧一次校验。
 // 协议常量取自 rany2/edge-tts 7.2.8（master 4bdb8e4，2026-03-22）的
-// src/edge_tts/constants.py，只参考协议事实。接口失效时运行 make upstream 逐项对照
-// 上游的最新值，跟着改这一个文件即可。
+// src/edge_tts/constants.py，只参考协议事实。合成端点在 2026-10-12 按上游 issue #490
+// 的实测迁移到 api.msedgeservices.com；上游 7.2.8 尚未迁移，make upstream 会报告这一项差异。
+// https://github.com/rany2/edge-tts/issues/490
 
 var TRUSTED_CLIENT_TOKEN = "6A5AA1D4EAFF4E9FB37E23D68491D6F4";
 var CHROMIUM_FULL_VERSION = "143.0.3650.75";
@@ -11,7 +12,10 @@ var CHROMIUM_MAJOR_VERSION = CHROMIUM_FULL_VERSION.split(".")[0];
 var SEC_MS_GEC_VERSION = "1-" + CHROMIUM_FULL_VERSION;
 
 var BASE_URL = "speech.platform.bing.com/consumer/speech/synthesize/readaloud";
-var WSS_URL = "wss://" + BASE_URL + "/edge/v1";
+// 旧合成端点从 2026-10-10 起在部分地区返回 403。新端点仍接受现有的 v1 签名和浏览器版本。
+var WSS_URL = "wss://api.msedgeservices.com/tts/cognitiveservices/websocket/v1";
+var WSS_TOKEN_QUERY_NAME = "Ocp-Apim-Subscription-Key";
+// 旧音色列表仍返回 200，用于音色核对和校时；新域名的未签名音色列表实测返回 403。
 var VOICE_LIST_URL = "https://" + BASE_URL + "/voices/list?trustedclienttoken=" + TRUSTED_CLIENT_TOKEN;
 
 // 2025-12 起微软校验 UA：不像 Edge 的 UA 握手直接 403
@@ -190,6 +194,7 @@ exports.TRUSTED_CLIENT_TOKEN = TRUSTED_CLIENT_TOKEN;
 exports.CHROMIUM_FULL_VERSION = CHROMIUM_FULL_VERSION;
 exports.SEC_MS_GEC_VERSION = SEC_MS_GEC_VERSION;
 exports.WSS_URL = WSS_URL;
+exports.WSS_TOKEN_QUERY_NAME = WSS_TOKEN_QUERY_NAME;
 exports.VOICE_LIST_URL = VOICE_LIST_URL;
 exports.USER_AGENT = USER_AGENT;
 exports.ORIGIN = ORIGIN;

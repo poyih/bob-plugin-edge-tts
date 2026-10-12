@@ -606,9 +606,10 @@ var XIAOXIAO_FULL = "Microsoft Server Speech Text to Speech Voice (zh-CN, Xiaoxi
 
     // 4. URL、握手头、随机数
     var url = T.buildUrl(1700000000);
-    ok(url.indexOf("wss://speech.platform.bing.com/consumer/speech/synthesize/readaloud/edge/v1?") === 0,
-        "URL 指向 readaloud/edge/v1");
-    ok(url.indexOf("TrustedClientToken=6A5AA1D4EAFF4E9FB37E23D68491D6F4") > 0, "URL 带 TrustedClientToken");
+    ok(url.indexOf("wss://api.msedgeservices.com/tts/cognitiveservices/websocket/v1?") === 0,
+        "URL 指向迁移后的微软合成端点");
+    ok(url.indexOf("?Ocp-Apim-Subscription-Key=6A5AA1D4EAFF4E9FB37E23D68491D6F4&") > 0 &&
+        url.indexOf("TrustedClientToken=") === -1, "新端点使用 Ocp-Apim-Subscription-Key 传客户端令牌");
     ok(/&ConnectionId=[0-9a-f]{32}&/.test(url), "ConnectionId 是 32 位小写 hex");
     ok(url.indexOf("&Sec-MS-GEC=42301B335578FEFDAE2637DED1ABD614505D432559EC08032B82048483726AFF") > 0,
         "URL 带 Sec-MS-GEC");
