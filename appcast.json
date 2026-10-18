@@ -2,6 +2,14 @@
   "identifier": "com.poyih.bob.plugin.edge.tts",
   "versions": [
     {
+      "version": "1.2.3",
+      "desc": "切换 v2 签名，修复 503 重试与发布检查",
+      "sha256": "e5d5bae5a1eb7657eee307d4ad56d2e4093409592d4dd073105af358837a7eda",
+      "url": "https://github.com/poyih/bob-plugin-edge-tts/releases/download/v1.2.3/bob-plugin-edge-tts-1.2.3.bobplugin",
+      "minBobVersion": "1.8.0",
+      "timestamp": 1792301823502
+    },
+    {
       "version": "1.2.2",
       "desc": "修复微软接口 403，迁移合成端点并更新音色维护检查",
       "sha256": "9bebae3d84da3c9aad70a08df75257a6319be16f71ec25e3ed8e7140c91f34a2",
