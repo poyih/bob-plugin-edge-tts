@@ -108,7 +108,7 @@ function isTransientFailure(failure) {
     return false;
 }
 
-// 合成一段。失败时按顺序兜底：握手被拒先校时重签一次（整次朗读只做一次）；音色读不了这种
+// 合成一段。失败时按顺序兜底：非 5xx 握手失败先校时重签一次（整次朗读只做一次）；音色读不了这种
 // 语言就换成该语言的内置默认音色；瞬时故障最多再试 MAX_TRANSIENT_RETRIES 次。重试次数与回退
 // 在整次朗读的各段之间共用。每次重试都要求剩余预算还够，不然直接报错，免得撞上 Bob 的超时。
 // job.stopped 之后（别的段已经失败）不再发起连接，也不再回调。
@@ -173,7 +173,9 @@ function synthesizeSegment(job, index, callback, onFirstAudio) {
                 callback(null, audio);
                 return;
             }
-            if (failure.kind === "handshake" && !job.skewProbed) {
+            // 服务端 5xx 属于瞬时故障，直接走下面的重试，不能依赖独立校时端点是否可达。
+            if (failure.kind === "handshake" && !isServerError(failure.detail && failure.detail.error) &&
+                !job.skewProbed) {
                 job.skewProbed = true;
                 logInfo("握手失败，检查本机时钟后重试一次 detail=" + oneLine(JSON.stringify(failure.detail)));
                 var probeRecord = { cancel: function () {} };

@@ -2,6 +2,8 @@
 
 > 2026-09-27，在无外网的沙箱里完成。Bob 官方文档站与 speech.platform.bing.com 均被沙箱出口代理拦截，Bob 侧结论来自作者已有插件源码与社区插件源码，Edge 侧结论来自 rany2/edge-tts 7.2.8 源码。两处待真机验证的点见文末与 `docs/tasks/01-poc-websocket.md`。
 
+> 2026-10-18 更新：下文协议要点保留初始分析时的 v1 记录。当前 1.2.3 使用新合成端点与 v2 签名，见 [README「接口失效时」](../README.md#接口失效时)；Bob 的实测记录见 [poc-findings.md](poc-findings.md)。
+
 ## 结论
 
 可行。Bob 插件运行时具备实现 Edge TTS 所需的全部原语，已有社区插件用同一套 API 走通 WebSocket 与二进制音频拼接。不确定性全部来自微软一侧：这是 Edge 浏览器的内部接口，过去一年被收紧了三次。
@@ -37,6 +39,7 @@
 | 2025-08 | edge-tts 更换端点，UA 版本升到 140（7.2.2 / 7.2.3） |
 | 2025-12-11 | 出现 NoAudioReceived，加 MUID cookie 并切回 macOS Edge 在用的端点才恢复（7.2.4 至 7.2.6）；同期第三方浏览器扩展被封死，UA 必须像 Edge |
 | 2026-04 至 2026-07 | 仍有间歇性无音频与 503 握手失败的 open issue（473、481、482） |
+| 2026-10-10 至 2026-10-13 | 旧接口多地区 403（[issue 490](https://github.com/rany2/edge-tts/issues/490)）；上游 7.3.0 合入 [v2 签名](https://github.com/rany2/edge-tts/pull/492)。本插件 1.2.2 迁移端点，1.2.3 直接改用 v2 |
 
 影响：维护成本是跟着 edge-tts 上游更新 UA、版本号和请求头。数据中心 IP 会被限流，Bob 跑在用户 Mac 上是家宽 IP，反而有利。国内可直连。接口属于 ToS 灰色地带，不适合商业化承诺。相对 Bob 内置「Microsoft 语音合成」（需 Azure 密钥）的差异就是免费无 Key。
 

@@ -376,7 +376,7 @@ function __report(value) {
 """
 context.evaluateScript(glue)
 
-for name in ["config.js", "sha256.js", "utils.js", "text.js", "options.js", "protocol.js", "connection.js", "synthesis.js", "main.js"] {
+for name in ["config.js", "sha256.js", "cs64.js", "utils.js", "text.js", "options.js", "protocol.js", "connection.js", "synthesis.js", "main.js"] {
     let source = try! String(contentsOf: sourceDir.appendingPathComponent(name), encoding: .utf8)
     call("__load", [name, source])
 }

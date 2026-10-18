@@ -22,7 +22,11 @@ def option(name):
 asset = root / "bob-plugin-edge-tts-1.2.0.bobplugin"
 if args[:2] == ["release", "view"]:
     if not (root / "exists").exists(): sys.exit(1)
-    print(json.dumps({"assets": [{"name": asset.name}] if asset.exists() else []}))
+    metadata = {"assets": [{"name": asset.name}] if asset.exists() else [],
+                "isDraft": False, "isPrerelease": False}
+    state = root / "release-state.json"
+    if state.exists(): metadata.update(json.loads(state.read_text()))
+    print(json.dumps({field: metadata[field] for field in option("--json").split(",")}))
 elif args[:2] == ["release", "download"]:
     directory = Path(option("--dir")); directory.mkdir(exist_ok=True)
     shutil.copyfile(asset, directory / asset.name)
@@ -156,6 +160,59 @@ class ReleaseTests(unittest.TestCase):
         self.assertEqual(candidate.read_bytes(), before, "appcast 必须使用实际已发布资产的字节")
         self.assertFalse(any(call[:2] == ["release", "upload"] for call in self.gh_calls()))
 
+    def assert_unstable_release_is_rejected(self, state, message):
+        self.save_tools()
+        (self.gh_dir / "exists").touch()
+        (self.gh_dir / "release-state.json").write_text(json.dumps(state))
+        appcast_before = self.git("show", "origin/main:appcast.json").stdout
+        for has_asset in (False, True):
+            with self.subTest(has_asset=has_asset):
+                (self.gh_dir / "calls.jsonl").unlink(missing_ok=True)
+                bundle = self.write_bundle(self.runner, date=(2026, 1, 1, 0, 0, 0))
+                bundle_before = bundle.read_bytes()
+                existing = self.gh_dir / bundle.name
+                if has_asset:
+                    self.write_bundle(self.gh_dir)
+                    asset_before = existing.read_bytes()
+                else:
+                    existing.unlink(missing_ok=True)
+                script = (workflow_step("创建 GitHub Release 并上传插件包") + "\n"
+                          + workflow_step("登记 appcast 并推回 main"))
+                result = subprocess.run(
+                    ["bash", "-e", "-o", "pipefail", "-c", script], cwd=self.root,
+                    env=dict(self.env, TAG="v1.2.0", BUNDLE=str(bundle)), text=True, capture_output=True,
+                )
+                self.assertNotEqual(result.returncode, 0)
+                self.assertIn(message, result.stderr)
+                self.assertEqual([call[:2] for call in self.gh_calls()], [["release", "view"]])
+                self.assertEqual(bundle.read_bytes(), bundle_before, "拒绝时不能复用线上资产替换本地包")
+                if has_asset:
+                    self.assertEqual(existing.read_bytes(), asset_before)
+                else:
+                    self.assertFalse(existing.exists(), "拒绝时不能上传资产")
+                self.assertEqual(self.git("show", "origin/main:appcast.json").stdout, appcast_before)
+
+    def test_draft_release_is_rejected_before_touching_assets_or_appcast(self):
+        self.assert_unstable_release_is_rejected({"isDraft": True}, "草稿 Release")
+
+    def test_prerelease_is_rejected_before_touching_assets_or_appcast(self):
+        self.assert_unstable_release_is_rejected({"isPrerelease": True}, "预发布 Release")
+
+    def test_existing_stable_release_accepts_missing_asset_and_registers_appcast(self):
+        self.save_tools()
+        bundle = self.write_bundle(self.runner)
+        (self.gh_dir / "exists").touch()
+        (self.runner / "edge-release-subject.txt").write_text("正式发布\n")
+        for step in ("创建 GitHub Release 并上传插件包", "登记 appcast 并推回 main"):
+            result = self.run_step(step, TAG="v1.2.0", BUNDLE=str(bundle))
+            self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertEqual((self.gh_dir / bundle.name).read_bytes(), bundle.read_bytes())
+        self.assertEqual([call[:2] for call in self.gh_calls()],
+                         [["release", "view"], ["release", "upload"]])
+        entry = json.loads(self.git("show", "origin/main:appcast.json").stdout)["versions"][0]
+        self.assertEqual(entry["version"], "1.2.0")
+        self.assertEqual(entry["desc"], "正式发布")
+
     def test_appcast_uses_saved_bundle_after_main_version_changes(self):
         self.save_tools()
         (self.root / "src/info.json").write_text(json.dumps(dict(self.info, version="1.3.0")))
@@ -216,6 +273,7 @@ class ReleaseTests(unittest.TestCase):
         self.assertEqual(entry["version"], "1.2.0")
         self.assertEqual(entry["desc"], "发布说明")
         self.assertTrue(any(call[:2] == ["release", "create"] and "--verify-tag" in call
+                            and "--draft=false" in call and "--prerelease=false" in call
                             for call in self.gh_calls()))
 
 

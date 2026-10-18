@@ -323,6 +323,7 @@ function loadModule(name) {
 
 var config = loadModule("config.js");
 loadModule("sha256.js");
+loadModule("cs64.js");
 loadModule("utils.js");
 loadModule("text.js");
 loadModule("options.js");
@@ -406,8 +407,8 @@ function closeScript(code, reason) {
 
 // 按微软的规则校验签名：与服务器时间所在的 5 分钟窗口或相邻窗口一致才放行
 function serverAccepts(url) {
-    var match = /Sec-MS-GEC=([0-9A-F]{64})(&|$)/.exec(url);
-    if (!match) {
+    var match = /Sec-MS-GEC=([0-9A-F]{16}-[0-9A-F]{64})(&|$)/.exec(url);
+    if (!match || url.indexOf("&Sec-MS-GEC-Version=2-") === -1) {
         return false;
     }
     for (var k = -1; k <= 1; k++) {
@@ -586,23 +587,33 @@ var XIAOXIAO_FULL = "Microsoft Server Speech Text to Speech Voice (zh-CN, Xiaoxi
 
     // 3. Sec-MS-GEC
     eq(T.gecPayload(1700000000), "1334447340000000006A5AA1D4EAFF4E9FB37E23D68491D6F4", "Unix 1700000000 的待哈希字串");
-    eq(T.secMsGec(1700000000), "42301B335578FEFDAE2637DED1ABD614505D432559EC08032B82048483726AFF",
+    eq(T.secMsGec(1700000000), "2CD23A2CA0B2595A-F3C846C370E05F9CC83ACC5F995C5F5D87A4D0F14CE8936A0F902E64099E38A2",
         "Unix 1700000000 的 Sec-MS-GEC");
     eq(T.gecPayload(1760000000.789), "1340447340000000006A5AA1D4EAFF4E9FB37E23D68491D6F4",
         "Unix 1760000000.789 的待哈希字串（小数被舍去）");
-    eq(T.secMsGec(1760000000.789), "70AED27457006C255086B4F079B9FE44A4D10827C4AFDFC3C45583B6F40D7DDF",
+    eq(T.secMsGec(1760000000.789), "6D50DDDB91812C33-DD68EFB01898B0750C9797D51A5FF93471DFDAE6888A1039D532CBDCCE54545D",
         "Unix 1760000000.789 的 Sec-MS-GEC");
-    eq(T.secMsGec(1790478614), "E4C4F86613D52B4AD21C1129AB2E52A658B8B0ADF200580B838CD1AE4ADF0ECD",
+    eq(T.secMsGec(1790478614), "4D1DB9C4575C6B6A-7BBC888A7FC4B9BD002D9FD2177394DFAF3C1D77FA2F89D691824527C6800C77",
         "2026-09-27 的 Sec-MS-GEC");
     eq(T.secMsGec(1790478899.999), T.secMsGec(1790478614), "同一个 5 分钟窗口内签名相同");
-    eq(T.secMsGec(1790478900), "20DFD04D973BFEDEF7D3B7C62CD47D2B4B90C258D35064D24F7ACF444665532B",
+    eq(T.secMsGec(1790478900), "AD75CD3D7721AC24-EB66E85D3B5EBCA087C135B08AB2610F5CF048052C899540EF48D7A6F162862B",
         "跨过 5 分钟边界签名改变");
     eq(T.gecPayload(0), "1164447360000000006A5AA1D4EAFF4E9FB37E23D68491D6F4", "Unix 0 的待哈希字串");
     ok([0, 1700000000, 1760000000.789, 1790478614, 4102444800, 32503680000].every(function (t) {
         return /^\d{18,19}6A5AA1D4EAFF4E9FB37E23D68491D6F4$/.test(T.gecPayload(t));
     }), "ticks 字串是纯十进制数字，不出现科学计数法或小数点");
     eq(T.gecPayload(4102444800), "1574691840000000006A5AA1D4EAFF4E9FB37E23D68491D6F4", "2100 年的 ticks 仍然精确");
-    ok(/^[0-9A-F]{64}$/.test(T.secMsGec(Date.now() / 1000)), "Sec-MS-GEC 是 64 位大写 hex");
+    // 来自上游 #492 的浏览器抓包向量，独立验证 CS64 与 SHA256 两半。
+    eq(T.secMsGec(1791888000), "492D7694A183A45E-56E821F95D4579C5B7C7E33DC7303FF379EC36D510213555BBBB9EB17EF15876",
+        "v2 签名逐字节匹配 Edge 抓包向量");
+    eq(T.secMsGec(1791888299.999), T.secMsGec(1791888000), "v2 窗口结束前的小数秒保持同一签名");
+    eq(T.secMsGec(1791888300), "6D26B5F5B70269AD-280E82E1BBE24E4E8866E3502EB6277B9436F61ABDC1C224518A038BBD7BBDAD",
+        "v2 过窗口边界时 CS64 与 SHA256 都改变");
+    eq(T.secMsGec(0), "52BC7A17B50DFEC9-28C4394775C8751CD2F6859C030C06DB1489ACAB3B3A7651831FC26895177ED6",
+        "v2 支持 Unix 纪元");
+    eq(T.secMsGec(4102444800), "DD230DB44FEE2FD7-DA0D4FA797866E36C992FABB81DD2F9DB37EB74D675D63228277003DCD3F9F8C",
+        "v2 2100 年的签名与上游一致");
+    ok(/^[0-9A-F]{16}-[0-9A-F]{64}$/.test(T.secMsGec(Date.now() / 1000)), "Sec-MS-GEC 是 v2 的 16hex-64hex 格式");
 
     // 4. URL、握手头、随机数
     var url = T.buildUrl(1700000000);
@@ -611,9 +622,9 @@ var XIAOXIAO_FULL = "Microsoft Server Speech Text to Speech Voice (zh-CN, Xiaoxi
     ok(url.indexOf("?Ocp-Apim-Subscription-Key=6A5AA1D4EAFF4E9FB37E23D68491D6F4&") > 0 &&
         url.indexOf("TrustedClientToken=") === -1, "新端点使用 Ocp-Apim-Subscription-Key 传客户端令牌");
     ok(/&ConnectionId=[0-9a-f]{32}&/.test(url), "ConnectionId 是 32 位小写 hex");
-    ok(url.indexOf("&Sec-MS-GEC=42301B335578FEFDAE2637DED1ABD614505D432559EC08032B82048483726AFF") > 0,
+    ok(url.indexOf("&Sec-MS-GEC=2CD23A2CA0B2595A-F3C846C370E05F9CC83ACC5F995C5F5D87A4D0F14CE8936A0F902E64099E38A2&") > 0,
         "URL 带 Sec-MS-GEC");
-    ok(/&Sec-MS-GEC-Version=1-143\.0\.3650\.75$/.test(url), "URL 以 Sec-MS-GEC-Version=1-143.0.3650.75 结尾");
+    ok(/&Sec-MS-GEC-Version=2-143\.0\.3650\.75$/.test(url), "URL 以 Sec-MS-GEC-Version=2-143.0.3650.75 结尾");
     ok(T.buildUrl(1700000000) !== url, "每条连接的 ConnectionId 不同");
     var id = T.connectionId();
     ok(/^[0-9a-f]{12}4[0-9a-f]{3}[89ab][0-9a-f]{15}$/.test(id), "ConnectionId 形同 UUID v4");
@@ -1449,23 +1460,55 @@ var XIAOXIAO_FULL = "Microsoft Server Speech Text to Speech Voice (zh-CN, Xiaoxi
     r = speak(ZH);
     ok(r.length === 1 && r[0].result && sockets.length === 2, "合成途中出错：重试一次后成功");
 
-    // 校时重签后仍是 5xx 算瞬时故障，再试；403 不再重试（见 17）
+    // 明确的 5xx 直接重试，不依赖校时端点；403 仍按原有逻辑校时（见 17）
     var reject503 = function (socket) {
         socket.fireError({ code: 0, message: "notAnUpgrade(503)", type: "unknownError" });
     };
     reset();
     socketScripts.push(reject503, reject503, successScript(fakeAudio(300), 720));
-    httpResponder = httpDateResponder("Date");
     r = speak(ZH);
-    ok(r.length === 1 && r[0].result && sockets.length === 3 && httpRequests.length === 1,
-        "握手 503：校时重试后仍 503 再重试一次，第三次成功");
+    ok(r.length === 1 && r[0].result && sockets.length === 3 && httpRequests.length === 0 &&
+        r[0].result.raw.retries === 2, "握手 503：直接重试两次，第三次成功，不请求校时");
+    ok(T.activeSocketCount() === 0 && activeTimers() === 0 &&
+        sockets.every(function (socket) { return socket.closeCalls === 1; }),
+        "握手 503：重试成功后所有连接与定时器都已清理");
 
     reset();
-    socketScripts.push(reject503, reject503, reject503, reject503);
-    httpResponder = httpDateResponder("Date");
+    socketScripts.push(reject503, successScript(fakeAudio(300), 720));
+    httpResponder = function () {
+        return { error: { message: "voices host temporarily unavailable" }, response: null };
+    };
+    r = speak(ZH);
+    ok(r.length === 1 && r[0].result && sockets.length === 2 && httpRequests.length === 0 &&
+        r[0].result.raw.retries === 1, "握手 503：独立校时端点不可达也能重试成功");
+
+    reset();
+    socketScripts.push(reject503, reject503, reject503, successScript(fakeAudio(300), 720));
     r = speak(ZH);
     ok(r.length === 1 && r[0].error && r[0].error.type === "api" && r[0].error.addtion.kind === "handshake" &&
-        sockets.length === 4 && r[0].error.addtion.retries === 2, "握手一直 503：校时一次加两次重试后报错");
+        sockets.length === 3 && httpRequests.length === 0 && r[0].error.addtion.retries === 2,
+        "握手一直 503：两次重试后报错，总共三条连接且不请求校时");
+    ok(T.activeSocketCount() === 0 && activeTimers() === 0 &&
+        sockets.every(function (socket) { return socket.closeCalls === 1; }),
+        "握手一直 503：重试用完后所有连接与定时器都已清理");
+
+    reset();
+    socketScripts.push(reject503, rejectScript, successScript(fakeAudio(300), 720));
+    httpResponder = httpDateResponder("Date");
+    r = speak(ZH);
+    ok(r.length === 1 && r[0].result && sockets.length === 3 && httpRequests.length === 1 &&
+        r[0].result.raw.retries === 1, "握手 503 后遇到 403：仍可校时重签一次后成功");
+
+    reset();
+    socketScripts.push(function (socket) {
+        clockOffset += 51000;
+        reject503(socket);
+    }, successScript(fakeAudio(300), 720));
+    r = speak(ZH);
+    ok(r.length === 1 && r[0].error && r[0].error.addtion.kind === "handshake" &&
+        r[0].error.addtion.retries === 0 && sockets.length === 1 && httpRequests.length === 0 &&
+        T.activeSocketCount() === 0 && activeTimers() === 0,
+        "握手 503：剩余预算不足 5 秒时直接报错并清理，不重试或校时");
 
     reset();
     socketScripts.push(function (socket) {

@@ -1,6 +1,7 @@
 // Edge 签名、消息构造、帧解析与音频编码；不管理网络或任务状态。
 var config = require("./config.js");
 var sha256 = require("./sha256.js");
+var cs64Hex = require("./cs64.js").cs64Hex;
 var trimmed = require("./utils.js").trimmed;
 
 // ---------------------------------------------------------------- 签名与握手参数
@@ -14,7 +15,10 @@ function gecPayload(unixSeconds) {
 }
 
 function secMsGec(unixSeconds) {
-    return sha256.sha256Hex(gecPayload(unixSeconds)).toUpperCase();
+    // 该固定前缀是 v2 协议输入的一部分，不能翻译或添加换行。
+    var message = "Copyright (C) Microsoft Corporation. All rights reserved." + gecPayload(unixSeconds);
+    var digest = sha256.sha256Hex(message).toUpperCase();
+    return cs64Hex(message, digest) + "-" + digest;
 }
 
 function randomHex(length, upper) {

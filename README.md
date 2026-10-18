@@ -42,13 +42,13 @@
 make voices VOICES_ARGS=--list
 ```
 
-音色需要定期核对。`make voices` 会向当前合成接口请求带签名的音色列表，检查内置默认音色和设置菜单；仓库已有每周一次的检查。只有确认某个内置音色已失效，才替换默认音色或移除菜单项。2026-10-12 核对新接口的 321 个音色，插件引用的 127 个全部存在。旧列表多出的 `en-IN-NeerjaExpressiveNeural` 未被插件引用，这次没有需要清理的菜单项。
+音色需要定期核对。`make voices` 会向当前合成接口请求带签名的音色列表，检查内置默认音色和设置菜单；仓库已有每周一次的检查。只有确认某个内置音色已失效，才替换默认音色或移除菜单项。2026-10-18 使用 v2 签名核对新接口的 321 个音色，插件引用的 127 个全部存在，无需清理菜单项。
 
 ## 常见报错
 
 | 提示 | 原因 |
 |---|---|
-| 微软接口拒绝连接 | 自动校准时钟后仍被拒，可能是微软变更了接口或限制了当前网络；1.2.1 及更早版本请升级到 1.2.2，见[接口失效时](#接口失效时) |
+| 微软接口拒绝连接 | 自动校准时钟后仍被拒，可能是微软变更了接口或限制了当前网络；1.2.2 及更早版本请升级到 1.2.3，见[接口失效时](#接口失效时) |
 | 未返回音频 | 音色读不了这种语言且没有可改用的默认音色，或微软偶发不给音频；插件已重试过一次 |
 | 音色 xxx 不存在或已下线 / 音色名称格式无效 | 音色名写错了，或微软下线了这个音色 |
 | 连接不上微软语音服务 | 断网、代理不通或域名解析失败 |
@@ -78,7 +78,9 @@ Bob 报「获取音频失败」而日志里没有 `edge-tts`，说明 Bob 识别
 
 ## 接口失效时
 
-2026-10-10 起，旧合成地址在部分地区开始返回 403，上游 edge-tts 7.2.8 也受影响，见 [issue #490](https://github.com/rany2/edge-tts/issues/490)。1.2.2 已将合成连接迁移到 `api.msedgeservices.com/tts/cognitiveservices/websocket/v1`，用 `Ocp-Apim-Subscription-Key` 传原客户端令牌；2026-10-12 实测新地址仍接受原 v1 签名。插件继续用旧音色列表校时，开发维护工具 `make voices` 使用新接口的签名列表核对音色。上游尚未迁移时，`make upstream` 会报告 WebSocket 地址不同，不能据此改回旧地址；这次修复仍依赖微软的内部接口，后续可能继续变更。
+2026-10-10 起，旧合成地址在部分地区开始返回 403，上游 edge-tts 7.2.8 也受影响，见 [issue #490](https://github.com/rany2/edge-tts/issues/490)。1.2.2 将合成连接迁移到 `api.msedgeservices.com/tts/cognitiveservices/websocket/v1`，用 `Ocp-Apim-Subscription-Key` 传原客户端令牌。1.2.3 按上游 [v2 修复 #492](https://github.com/rany2/edge-tts/pull/492) 直接切换到 v2 签名：CS64 与 SHA-256 共同生成 `16hex-64hex` 令牌，版本标记同步改为 `2-143.0.3650.75`，合成和 `make voices` 均使用该格式。
+
+插件继续用旧音色列表校时，维护工具使用新接口的签名列表核对音色。明确的服务端 5xx 直接重试，不依赖校时端点的可用性；其他握手失败仍保留校时重签。`make upstream` 将当前确切的新旧 WebSocket 地址组合标为已知差异，签名或未知地址的变化仍会报错，不能为了与上游一致而改回旧地址。这些修复仍依赖微软的内部接口，后续可能继续变更。
 
 先用 edge-tts 确认是不是接口本身的问题：
 
@@ -100,7 +102,7 @@ swiftc -O scripts/live/harness.swift -o /tmp/edge-harness
 
 ## 开发
 
-Bob 插件入口在 `src/main.js`；`src/protocol.js` 负责签名、消息和帧解析，`src/connection.js` 负责连接看门狗及可取消的校时请求，`src/synthesis.js` 负责整次任务的预算、重试、音色回退与并发调度。设置解析在 `src/options.js`，公共工具在 `src/utils.js`。协议常量和音色表仍在 `src/config.js`，SHA-256 在 `src/sha256.js`，文本清理与分段在 `src/text.js`。
+Bob 插件入口在 `src/main.js`；`src/protocol.js` 负责签名、消息和帧解析，`src/connection.js` 负责连接看门狗及可取消的校时请求，`src/synthesis.js` 负责整次任务的预算、重试、音色回退与并发调度。设置解析在 `src/options.js`，公共工具在 `src/utils.js`。协议常量和音色表仍在 `src/config.js`，SHA-256 在 `src/sha256.js`，v2 的 CS64 校验在 `src/cs64.js`，文本清理与分段在 `src/text.js`。
 
 `docs/tasks/` 下的三张任务卡是开发时交给 Claude Code 的指令，都已完成，留作设计记录；真机实测的结论在 [docs/poc-findings.md](docs/poc-findings.md)。要在 Bob 里复现重试、超时这类故障，用 `scripts/live/fake_edge.py` 扮演出故障的服务端，用法见文件开头。
 
@@ -116,12 +118,12 @@ make install    # 打包并交给 Bob 安装
 发版：改 `src/info.json` 的 `version` 并合并到 main，然后打带注释的标签并推送：
 
 ```bash
-git tag -a v1.2.1 -m "更新说明" && git push origin v1.2.1
+git tag -a v1.2.3 -m "切换 v2 签名并修复重试与发布检查" && git push origin v1.2.3
 ```
 
 Release 工作流始终切换到标签指向的提交再 `make pack`，保存确切包路径后创建 Release 并上传，最后从包内 `info.json` 读取版本、identifier 和最低 Bob 版本，登记 `appcast.json` 并推回 main。即使 main 已升级到下一版本，登记的仍是刚发布的包。标签注释的第一行是 appcast 更新说明，全文是 Release 说明；引号、反引号和 `$` 均作为原文处理。
 
-重复运行时，已有同版本资产会先下载并核对文件内容：一致就复用原包及其 sha256，不重新上传；内容不同就失败，需改版本号重新发布。appcast 也拒绝同一版本换成不同 sha256，一致的重复登记保留原发布时间。推不了 main 时会推到 `appcast/v1.2.1` 分支并尝试开 PR。在 Actions 页手动运行 Release 时，工作流按当前所选分支的版本查找或创建标签，然后固定从该标签构建。
+重复运行时，已有同版本资产会先下载并核对文件内容：一致就复用原包及其 sha256，不重新上传；内容不同就失败，需改版本号重新发布。已有同标签 Release 若为草稿或预发布，工作流会在处理资产前失败，阻止登记到稳定更新源；新建 Release 明确使用正式发布。appcast 也拒绝同一版本换成不同 sha256，一致的重复登记保留原发布时间。推不了 main 时会推到 `appcast/v1.2.3` 分支并尝试开 PR。在 Actions 页手动运行 Release 时，工作流按当前所选分支的版本查找或创建标签，然后固定从该标签构建。
 
 手动发版可按 `make pack` → 创建 Release 上传插件包 → `make appcast DESC="更新说明"` → 提交 `appcast.json` 的顺序做，Release 资产上传之前不要登记 appcast。登记旧版本时可显式指定包路径：`make appcast BUNDLE=dist/bob-plugin-edge-tts-1.2.0.bobplugin DESC="更新说明"`；较复杂的说明也可用 `python3 scripts/update_appcast.py --bundle 包路径 --desc-file 说明文件`。
 

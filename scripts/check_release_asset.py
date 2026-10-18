@@ -27,9 +27,15 @@ def gh(*args, check=True):
 
 def publish(bundle: Path, tag: str, repo: str, notes_file: Path) -> None:
     read_bundle_info(bundle, tag)
-    release = gh("release", "view", tag, "--repo", repo, "--json", "assets", check=False)
+    release = gh("release", "view", tag, "--repo", repo,
+                 "--json", "assets,isDraft,isPrerelease", check=False)
     if release.returncode == 0:
-        assets = json.loads(release.stdout).get("assets", [])
+        metadata = json.loads(release.stdout)
+        if metadata.get("isDraft"):
+            raise ValueError(f"{tag} 是草稿 Release，不能登记到稳定 appcast；请先发布为正式版本")
+        if metadata.get("isPrerelease"):
+            raise ValueError(f"{tag} 是预发布 Release，不能登记到稳定 appcast；请先发布为正式版本")
+        assets = metadata.get("assets", [])
         if any(asset.get("name") == bundle.name for asset in assets):
             with tempfile.TemporaryDirectory(prefix="edge-existing-asset-") as directory:
                 gh("release", "download", tag, "--repo", repo, "--pattern", bundle.name,
@@ -46,6 +52,7 @@ def publish(bundle: Path, tag: str, repo: str, notes_file: Path) -> None:
             print(f"{tag} 已上传缺少的插件包")
     else:
         gh("release", "create", tag, str(bundle), "--repo", repo, "--verify-tag",
+           "--draft=false", "--prerelease=false",
            "--title", f"Microsoft Edge 语音合成 {tag}", "--notes-file", str(notes_file))
         print(f"{tag} 已创建 Release 并上传插件包")
 

@@ -10,6 +10,7 @@
 import argparse
 import hashlib
 import json
+import math
 import re
 import sys
 import time
@@ -30,8 +31,44 @@ def js_string(js: str, name: str) -> str:
     return match.group(1) if match else ""
 
 
+def _cs64_hex(message: bytes, digest: bytes) -> str:
+    """v2 的 64 位校验：两种 32 位累加链异或后按小端输出。"""
+    mask = 0xFFFFFFFF
+
+    def swap_halves(value):
+        value &= mask
+        return ((value << 16) | (value >> 16)) & mask
+
+    keys = [int.from_bytes(digest[offset:offset + 4], "little") | 1 for offset in (0, 4)]
+    # 每个 8 字节块包含两个小端字；尾部不足一块时补零。
+    padded = message + bytes(-len(message) % 8)
+    word_factors = ((0xEF0569FB, 0x76F50F34, 0xC3EFEA97),
+                    (0xC31713DB, 0x1881CE3C, 0x35BD1EC9))
+    swapped_sum = swapped_last = chained_sum = chained = 0
+    for offset in range(0, len(padded), 8):
+        words = [int.from_bytes(padded[index:index + 4], "little")
+                 for index in (offset, offset + 4)]
+        for word, key, factors in zip(words, keys, word_factors):
+            mixed = swap_halves(swap_halves(word) * factors[0] + word * key)
+            mixed = (mixed * factors[1]) & mask
+            swapped_last = (swap_halves(mixed) * factors[2] + mixed) & mask
+            swapped_sum = (swapped_sum + swapped_last) & mask
+
+        chained = ((chained + words[0]) * keys[0]) & mask
+        for factor in (0xCF98B111, 0x87085B9F, 0x12CEB96D, 0x257E1D83):
+            chained = (swap_halves(chained) * factor) & mask
+        chained_sum = (chained_sum + chained) & mask
+        chained = ((chained + words[1]) * keys[1]) & mask
+        for factor in (0xA27416F5, 0xD38396FF, 0x7C932B89, 0xBFA49F69):
+            chained = (swap_halves(chained) * factor) & mask
+        chained_sum = (chained_sum + chained) & mask
+
+    checksum = (swapped_last ^ chained, swapped_sum ^ chained_sum)
+    return b"".join(word.to_bytes(4, "little") for word in checksum).hex().upper()
+
+
 def voice_list_url(config_js: str, unix_seconds: float) -> str:
-    """从合成地址推导音色列表地址，并使用与插件相同的 v1 签名。"""
+    """从合成地址推导音色列表地址，并使用与插件相同的 v2 签名。"""
     websocket_url = js_string(config_js, "WSS_URL")
     suffix = "/websocket/v1"
     if not websocket_url.startswith("wss://") or not websocket_url.endswith(suffix):
@@ -48,17 +85,21 @@ def voice_list_url(config_js: str, unix_seconds: float) -> str:
             raise ValueError(f"config.js 缺少签名常量 {name}")
         return int(match.group(1))
 
-    seconds = int(unix_seconds) + integer("WIN_EPOCH_SECONDS")
+    seconds = math.floor(unix_seconds) + integer("WIN_EPOCH_SECONDS")
     window = integer("GEC_WINDOW_SECONDS")
     if window <= 0:
         raise ValueError("GEC_WINDOW_SECONDS 必须大于 0")
     seconds -= seconds % window
-    signature = hashlib.sha256((str(seconds) + "0000000" + token).encode("ascii")).hexdigest().upper()
+    # 先拼整数 ticks，避免远未来时刻经过浮点乘法后产生精度损失。
+    message = ("Copyright (C) Microsoft Corporation. All rights reserved."
+               + str(seconds) + "0000000" + token).encode("ascii")
+    digest = hashlib.sha256(message).digest()
+    signature = _cs64_hex(message, digest) + "-" + digest.hex().upper()
     base = "https://" + websocket_url[len("wss://"):-len(suffix)] + "/voices/list"
     return base + "?" + urllib.parse.urlencode({
         token_query_name: token,
         "Sec-MS-GEC": signature,
-        "Sec-MS-GEC-Version": "1-" + version,
+        "Sec-MS-GEC-Version": "2-" + version,
     })
 
 
