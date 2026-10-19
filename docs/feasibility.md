@@ -2,7 +2,7 @@
 
 > 2026-09-27，在无外网的沙箱里完成。Bob 官方文档站与 speech.platform.bing.com 均被沙箱出口代理拦截，Bob 侧结论来自作者已有插件源码与社区插件源码，Edge 侧结论来自 rany2/edge-tts 7.2.8 源码。两处待真机验证的点见文末与 `docs/tasks/01-poc-websocket.md`。
 
-> 2026-10-18 更新：下文协议要点保留初始分析时的 v1 记录。当前 1.2.3 使用新合成端点与 v2 签名，见 [README「接口失效时」](../README.md#接口失效时)；Bob 的实测记录见 [poc-findings.md](poc-findings.md)。
+> 2026-10-18 更新：下文协议要点保留初始分析时的 v1 记录。1.2.3 起使用新合成端点与 v2 签名，见 [README「接口失效时」](../README.md#接口失效时)；Bob 的实测记录见 [poc-findings.md](poc-findings.md)。
 
 ## 结论
 

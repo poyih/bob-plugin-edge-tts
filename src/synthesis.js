@@ -45,6 +45,11 @@ function failureToError(failure, context) {
     }
 
     if (failure.kind === "handshake") {
+        // 5xx 是服务端临时故障，提示查系统时间会误导用户
+        var status = serverErrorStatus(source.error);
+        if (status) {
+            return makeError("api", "微软语音服务暂时不可用（HTTP " + status + "），请稍后重试", detail);
+        }
         return makeError("api", MESSAGE_REJECTED, detail);
     }
     if (failure.kind === "noAudio") {
@@ -81,15 +86,21 @@ function failureToError(failure, context) {
 
 // ---------------------------------------------------------------- 合成
 
-// Bob 的 error.code 恒为 0，HTTP 状态码只出现在 message 里（如 notAnUpgrade(503)），两处都看
-function isServerError(error) {
+// Bob 的 error.code 恒为 0，HTTP 状态码只出现在 message 里（如 notAnUpgrade(503)），两处都看。
+// 返回 5xx 状态码，不是服务端错误时返回 0
+function serverErrorStatus(error) {
     if (!error) {
-        return false;
+        return 0;
     }
     if (typeof error.code === "number" && error.code >= 500 && error.code <= 599) {
-        return true;
+        return error.code;
     }
-    return /\b5\d\d\b/.test(String(error.message || ""));
+    var match = /\b(5\d\d)\b/.exec(String(error.message || ""));
+    return match ? Number(match[1]) : 0;
+}
+
+function isServerError(error) {
+    return serverErrorStatus(error) !== 0;
 }
 
 // 换条连接再试就可能成功的故障：服务端 5xx、中途关闭（音色不存在除外）、断流、连上后没数据。

@@ -1491,6 +1491,20 @@ var XIAOXIAO_FULL = "Microsoft Server Speech Text to Speech Voice (zh-CN, Xiaoxi
     ok(T.activeSocketCount() === 0 && activeTimers() === 0 &&
         sockets.every(function (socket) { return socket.closeCalls === 1; }),
         "握手一直 503：重试用完后所有连接与定时器都已清理");
+    eq(r[0].error.message, "微软语音服务暂时不可用（HTTP 503），请稍后重试",
+        "握手一直 503：提示服务暂时不可用，不提系统时间");
+
+    reset();
+    var reject502 = function (socket) {
+        socket.fireError({ code: 502, message: "Bad Gateway" });
+    };
+    socketScripts.push(reject502, reject502, reject502, successScript(fakeAudio(300), 720));
+    r = speak(ZH);
+    ok(r.length === 1 && r[0].error && r[0].error.addtion.kind === "handshake" &&
+        sockets.length === 3 && httpRequests.length === 0,
+        "握手一直 502（状态码在 code 里）：同样重试两次后报错，不请求校时");
+    eq(r[0].error.message, "微软语音服务暂时不可用（HTTP 502），请稍后重试",
+        "握手一直 502：提示里带上 code 里的状态码");
 
     reset();
     socketScripts.push(reject503, rejectScript, successScript(fakeAudio(300), 720));
