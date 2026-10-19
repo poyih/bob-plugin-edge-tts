@@ -89,7 +89,7 @@ Bob 报「获取音频失败」而日志里没有 `edge-tts`，说明 Bob 识别
 uvx edge-tts --voice zh-CN-XiaoxiaoNeural --text "你好" --write-media /tmp/edge.mp3
 ```
 
-edge-tts 也失败时，可能是微软变更了接口，也可能是当前网络或地区受限。先检查上游 issue；上游修复后运行 `make upstream`，它会把上游 `src/edge_tts/constants.py` 里的浏览器版本号、端点和握手头与 `src/config.js` 逐项对照，再结合变更说明处理差异，协议常量都集中在这一个文件里。仓库的定时任务每周一也会自动对照一次并核对音色列表，有出入就开一个带 `upstream-drift` 标签的 issue。GitHub 会停用 60 天没有提交的仓库的定时任务，需要到 Actions 页手动重新启用。
+edge-tts 也失败时，可能是微软变更了接口，也可能是当前网络或地区受限。先检查上游 issue；上游修复后运行 `make upstream`，它会把上游 `src/edge_tts/constants.py` 里的浏览器版本号、端点和握手头与 `src/config.js` 逐项对照，再结合变更说明处理差异，协议常量都集中在这一个文件里。仓库的定时任务每周一也会自动对照一次并核对音色列表，有出入就开一个带 `upstream-drift` 标签的 issue，之后对照和音色核对都通过时自动关闭它。GitHub 会停用 60 天没有提交的仓库的定时任务，需要到 Actions 页手动重新启用。
 
 edge-tts 正常而插件失败，用联网冒烟测试宿主看插件卡在哪一步：
 

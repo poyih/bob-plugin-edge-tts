@@ -1,7 +1,9 @@
-"""验证上游监测只放行精确的已知端点差异，其他漂移仍失败；不访问网络。"""
+"""验证上游监测只放行精确的已知端点差异，其他漂移仍失败，对照通过时关闭漂移 issue；不访问网络。"""
 import contextlib
 import io
 import json
+import os
+import subprocess
 import sys
 import tempfile
 import unittest
@@ -9,6 +11,21 @@ from pathlib import Path
 from unittest import mock
 
 import check_upstream
+from test_release import ROOT, workflow_step
+
+FAKE_GH = r'''#!/usr/bin/env python3
+import json, os, sys
+from pathlib import Path
+root = Path(os.environ["FAKE_GH_DIR"])
+args = sys.argv[1:]
+with (root / "calls.jsonl").open("a") as log:
+    log.write(json.dumps(args) + "\n")
+if args[:2] == ["issue", "list"]:
+    for number in json.loads((root / "open-issues.json").read_text()):
+        print(number)
+elif args[:2] != ["issue", "close"]:
+    raise SystemExit("unexpected gh invocation: " + repr(args))
+'''
 
 
 class UpstreamMonitoringTests(unittest.TestCase):
@@ -165,6 +182,60 @@ class UpstreamMonitoringTests(unittest.TestCase):
         self.assertEqual(status, 1)
         self.assertIn("upstream FAIL  Sec-MS-GEC-Version", output)
         self.assertIn("已知新端点继续保留", output)
+
+
+class UpstreamWorkflowTests(unittest.TestCase):
+    """在临时目录执行 upstream.yml 里关闭 issue 的实际脚本，GitHub CLI 仅在边界替换。"""
+    STEP = "对照通过时关闭 issue"
+
+    def setUp(self):
+        temp = tempfile.TemporaryDirectory(prefix="edge-upstream-workflow-")
+        self.addCleanup(temp.cleanup)
+        self.base = Path(temp.name)
+        bin_dir = self.base / "bin"
+        bin_dir.mkdir()
+        (bin_dir / "gh").write_text(FAKE_GH)
+        (bin_dir / "gh").chmod(0o755)
+        self.env = dict(os.environ, FAKE_GH_DIR=str(self.base), GH_TOKEN="fixture-token",
+                        RUN_URL="https://example.invalid/actions/runs/1",
+                        PATH=str(bin_dir) + os.pathsep + os.environ["PATH"])
+
+    def run_close_step(self, open_issues):
+        (self.base / "open-issues.json").write_text(json.dumps(open_issues))
+        result = subprocess.run(["bash", "-e", "-o", "pipefail", "-c", workflow_step(self.STEP, "upstream.yml")],
+                                cwd=self.base, env=self.env, text=True, capture_output=True)
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        calls = self.base / "calls.jsonl"
+        return [json.loads(line) for line in calls.read_text().splitlines()] if calls.exists() else []
+
+    def test_closes_every_open_drift_issue_with_run_link(self):
+        calls = self.run_close_step([10, 12])
+        listing = calls[0]
+        self.assertEqual(listing[:2], ["issue", "list"])
+        self.assertEqual(listing[listing.index("--label") + 1], "upstream-drift")
+        self.assertEqual(listing[listing.index("--state") + 1], "open")
+        closes = [call for call in calls if call[:2] == ["issue", "close"]]
+        self.assertEqual([call[2] for call in closes], ["10", "12"])
+        for call in closes:
+            self.assertEqual(call[call.index("--reason") + 1], "completed")
+            self.assertIn("https://example.invalid/actions/runs/1", call[call.index("--comment") + 1])
+
+    def test_no_open_drift_issue_closes_nothing(self):
+        calls = self.run_close_step([])
+        self.assertEqual([call[:2] for call in calls], [["issue", "list"]])
+
+    def test_closes_only_when_both_checks_pass(self):
+        # 音色列表请求失败（退出码 2）不算通过：issue 可能正是音色缺失开的，不能就此关掉
+        lines = (ROOT / ".github/workflows/upstream.yml").read_text().splitlines()
+        start = lines.index("      - name: " + self.STEP)
+        condition = None
+        for line in lines[start + 1:]:
+            if line.startswith("      - "):
+                break
+            if line.startswith("        if: "):
+                condition = line.strip()
+        self.assertEqual(condition,
+                         "if: steps.upstream.outputs.status == '0' && steps.voices.outputs.status == '0'")
 
 
 if __name__ == "__main__":
