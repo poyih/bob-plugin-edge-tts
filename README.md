@@ -42,7 +42,7 @@
 make voices VOICES_ARGS=--list
 ```
 
-音色需要定期核对。`make voices` 会向当前合成接口请求带签名的音色列表，检查内置默认音色和设置菜单；仓库已有每周一次的检查。只有确认某个内置音色已失效，才替换默认音色或移除菜单项。2026-10-18 使用 v2 签名核对新接口的 321 个音色，插件引用的 127 个全部存在，无需清理菜单项。
+音色需要定期核对。`make voices` 会向当前合成接口请求带签名的音色列表，检查内置默认音色和设置菜单；仓库已有每周一次的检查。只有确认某个内置音色已失效，才替换默认音色或移除菜单项。2026-10-19 使用 v2 签名核对新接口的 321 个音色，插件引用的 127 个全部存在，无需清理菜单项。
 
 ## 常见报错
 
@@ -119,12 +119,12 @@ make install    # 打包并交给 Bob 安装
 发版：改 `src/info.json` 的 `version` 并合并到 main，然后打带注释的标签并推送：
 
 ```bash
-git tag -a v1.2.3 -m "切换 v2 签名并修复重试与发布检查" && git push origin v1.2.3
+git tag -a v1.3.0 -m "服务端持续 5xx 时提示服务暂时不可用" && git push origin v1.3.0
 ```
 
 Release 工作流始终切换到标签指向的提交再 `make pack`，保存确切包路径后创建 Release 并上传，最后从包内 `info.json` 读取版本、identifier 和最低 Bob 版本，登记 `appcast.json` 并推回 main。即使 main 已升级到下一版本，登记的仍是刚发布的包。标签注释的第一行是 appcast 更新说明，全文是 Release 说明；引号、反引号和 `$` 均作为原文处理。
 
-重复运行时，已有同版本资产会先下载并核对文件内容：一致就复用原包及其 sha256，不重新上传；内容不同就失败，需改版本号重新发布。已有同标签 Release 若为草稿或预发布，工作流会在处理资产前失败，阻止登记到稳定更新源；新建 Release 明确使用正式发布。appcast 也拒绝同一版本换成不同 sha256，一致的重复登记保留原发布时间。推不了 main 时会推到 `appcast/v1.2.3` 分支并尝试开 PR。在 Actions 页手动运行 Release 时，工作流按当前所选分支的版本查找或创建标签，然后固定从该标签构建。
+重复运行时，已有同版本资产会先下载并核对文件内容：一致就复用原包及其 sha256，不重新上传；内容不同就失败，需改版本号重新发布。已有同标签 Release 若为草稿或预发布，工作流会在处理资产前失败，阻止登记到稳定更新源；新建 Release 明确使用正式发布。appcast 也拒绝同一版本换成不同 sha256，一致的重复登记保留原发布时间。推不了 main 时会推到 `appcast/v1.3.0` 分支并尝试开 PR。在 Actions 页手动运行 Release 时，工作流按当前所选分支的版本查找或创建标签，然后固定从该标签构建。
 
 手动发版可按 `make pack` → 创建 Release 上传插件包 → `make appcast DESC="更新说明"` → 提交 `appcast.json` 的顺序做，Release 资产上传之前不要登记 appcast。登记旧版本时可显式指定包路径：`make appcast BUNDLE=dist/bob-plugin-edge-tts-1.2.0.bobplugin DESC="更新说明"`；较复杂的说明也可用 `python3 scripts/update_appcast.py --bundle 包路径 --desc-file 说明文件`。
 
