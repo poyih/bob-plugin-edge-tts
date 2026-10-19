@@ -2,6 +2,14 @@
   "identifier": "com.poyih.bob.plugin.edge.tts",
   "versions": [
     {
+      "version": "1.3.0",
+      "desc": "微软服务端持续 5xx 时提示服务暂时不可用，不再误报系统时间问题",
+      "sha256": "37dc2a50e033da6eb9d0ffa4446688521e69db30ccf03ac8f08992e71b7e0baf",
+      "url": "https://github.com/poyih/bob-plugin-edge-tts/releases/download/v1.3.0/bob-plugin-edge-tts-1.3.0.bobplugin",
+      "minBobVersion": "1.8.0",
+      "timestamp": 1792398040453
+    },
+    {
       "version": "1.2.3",
       "desc": "切换 v2 签名，修复 503 重试与发布检查",
       "sha256": "e5d5bae5a1eb7657eee307d4ad56d2e4093409592d4dd073105af358837a7eda",
