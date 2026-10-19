@@ -1,7 +1,8 @@
 name: Upstream
 
 # 每周对照一次上游 rany2/edge-tts 的协议常量（浏览器版本号、端点、握手头）和微软的音色列表。
-# 微软收紧校验时上游一般几天内跟进；这里发现出入就自动开（或刷新）一个带 upstream-drift 标签的 issue。
+# 微软收紧校验时上游一般几天内跟进；这里发现出入就自动开（或刷新）一个带 upstream-drift 标签的 issue，
+# 之后两项对照都通过时自动关闭它。音色列表请求失败不算通过，issue 保持打开。
 # 注意：公开仓库 60 天没有提交，GitHub 会自动停用定时任务，需要到 Actions 页手动重新启用。
 
 on:
@@ -54,7 +55,7 @@ jobs:
           RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
         run: |
           {
-            echo "定时任务 $(date -u +%Y-%m-%d) 发现本插件与上游有出入，处理完请关闭本 issue。工作流运行：$RUN_URL"
+            echo "定时任务 $(date -u +%Y-%m-%d) 发现本插件与上游有出入。处理完后，下次对照通过时会自动关闭本 issue，也可以在 Actions 页手动运行 Upstream 工作流。工作流运行：$RUN_URL"
             echo
             cat upstream-report.md
             echo
@@ -72,6 +73,23 @@ jobs:
           else
             gh issue create --title "上游接口常量或音色列表有变动" --label upstream-drift --body-file issue-body.md
           fi
+
+      - name: 对照通过时关闭 issue
+        if: steps.upstream.outputs.status == '0' && steps.voices.outputs.status == '0'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          numbers=$(gh issue list --label upstream-drift --state open --limit 100 --json number --jq '.[].number')
+          if [ -z "$numbers" ]; then
+            echo "没有未关闭的 upstream-drift issue"
+            exit 0
+          fi
+          for number in $numbers; do
+            gh issue close "$number" --reason completed \
+              --comment "$(date -u +%Y-%m-%d) 重新对照已通过：协议常量与上游一致（已知差异除外），插件引用的音色都在微软的音色列表里，自动关闭。工作流运行：$RUN_URL"
+            echo "已关闭 issue #$number"
+          done
 
       - name: 结果
         run: |

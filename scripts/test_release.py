@@ -42,8 +42,8 @@ else:
 '''
 
 
-def workflow_step(name):
-    lines = (ROOT / ".github/workflows/release.yml").read_text().splitlines()
+def workflow_step(name, workflow="release.yml"):
+    lines = (ROOT / ".github/workflows" / workflow).read_text().splitlines()
     start = lines.index("      - name: " + name)
     script = []
     collecting = False
