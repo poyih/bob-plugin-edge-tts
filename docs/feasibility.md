@@ -40,6 +40,7 @@
 | 2025-12-11 | 出现 NoAudioReceived，加 MUID cookie 并切回 macOS Edge 在用的端点才恢复（7.2.4 至 7.2.6）；同期第三方浏览器扩展被封死，UA 必须像 Edge |
 | 2026-04 至 2026-07 | 仍有间歇性无音频与 503 握手失败的 open issue（473、481、482） |
 | 2026-10-10 至 2026-10-13 | 旧接口多地区 403（[issue 490](https://github.com/rany2/edge-tts/issues/490)）；上游 7.3.0 合入 [v2 签名](https://github.com/rany2/edge-tts/pull/492)。本插件 1.2.2 迁移端点，1.2.3 直接改用 v2 |
+| 2026-10-26 | `api.msedgeservices.com` 对 WebSocket 握手只回 200 空响应、不再升级协议，音色列表同样；上游端点 `speech.platform.bing.com/.../edge/v1` 带 v2 签名正常。本插件 1.3.1 改回上游端点，协议常量与上游完全一致 |
 
 影响：维护成本是跟着 edge-tts 上游更新 UA、版本号和请求头。数据中心 IP 会被限流，Bob 跑在用户 Mac 上是家宽 IP，反而有利。国内可直连。接口属于 ToS 灰色地带，不适合商业化承诺。相对 Bob 内置「Microsoft 语音合成」（需 Azure 密钥）的差异就是免费无 Key。
 

@@ -40,7 +40,7 @@ function connectionId() {
 
 function buildUrl(unixSeconds) {
     return config.WSS_URL +
-        "?" + config.WSS_TOKEN_QUERY_NAME + "=" + config.TRUSTED_CLIENT_TOKEN +
+        "?TrustedClientToken=" + config.TRUSTED_CLIENT_TOKEN +
         "&ConnectionId=" + connectionId() +
         "&Sec-MS-GEC=" + secMsGec(unixSeconds) +
         "&Sec-MS-GEC-Version=" + config.SEC_MS_GEC_VERSION;
