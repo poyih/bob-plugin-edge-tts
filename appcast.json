@@ -2,6 +2,14 @@
   "identifier": "com.poyih.bob.plugin.edge.tts",
   "versions": [
     {
+      "version": "1.3.1",
+      "desc": "改回上游合成端点，修复微软接口拒绝连接",
+      "sha256": "4d0e88945d5681691541b5e0450a1b736f22bc2005352ad9a1fd4096ff02fd49",
+      "url": "https://github.com/poyih/bob-plugin-edge-tts/releases/download/v1.3.1/bob-plugin-edge-tts-1.3.1.bobplugin",
+      "minBobVersion": "1.8.0",
+      "timestamp": 1793014218507
+    },
+    {
       "version": "1.3.0",
       "desc": "微软服务端持续 5xx 时提示服务暂时不可用，不再误报系统时间问题",
       "sha256": "37dc2a50e033da6eb9d0ffa4446688521e69db30ccf03ac8f08992e71b7e0baf",
