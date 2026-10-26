@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""联网核对插件里写死的音色是否还在当前合成端点的音色列表里。
+"""联网核对插件里写死的音色是否还在微软的音色列表里。
 
 微软偶尔会下线音色；内置语言表或菜单里留着不存在的音色，用户选中后只会得到
 「音色不存在或已下线」。这个脚本不属于 make test（单测不联网），改音色表后手动跑：
@@ -68,16 +68,12 @@ def _cs64_hex(message: bytes, digest: bytes) -> str:
 
 
 def voice_list_url(config_js: str, unix_seconds: float) -> str:
-    """从合成地址推导音色列表地址，并使用与插件相同的 v2 签名。"""
-    websocket_url = js_string(config_js, "WSS_URL")
-    suffix = "/websocket/v1"
-    if not websocket_url.startswith("wss://") or not websocket_url.endswith(suffix):
-        raise ValueError("无法从 WSS_URL 推导当前合成端点的音色列表地址")
+    """接口域名下的音色列表地址，带与插件相同的 v2 签名；与上游 edge-tts 的 list_voices 请求一致。"""
+    base = js_string(config_js, "BASE_URL")
     token = js_string(config_js, "TRUSTED_CLIENT_TOKEN")
-    token_query_name = js_string(config_js, "WSS_TOKEN_QUERY_NAME")
     version = js_string(config_js, "CHROMIUM_FULL_VERSION")
-    if not token or not token_query_name or not version:
-        raise ValueError("config.js 缺少音色列表请求所需的令牌、参数名或浏览器版本")
+    if not base or not token or not version:
+        raise ValueError("config.js 缺少音色列表请求所需的接口域名、令牌或浏览器版本")
 
     def integer(name):
         match = re.search(r"\bvar\s+" + re.escape(name) + r"\s*=\s*(\d+)\s*;", config_js)
@@ -95,9 +91,8 @@ def voice_list_url(config_js: str, unix_seconds: float) -> str:
                + str(seconds) + "0000000" + token).encode("ascii")
     digest = hashlib.sha256(message).digest()
     signature = _cs64_hex(message, digest) + "-" + digest.hex().upper()
-    base = "https://" + websocket_url[len("wss://"):-len(suffix)] + "/voices/list"
-    return base + "?" + urllib.parse.urlencode({
-        token_query_name: token,
+    return "https://" + base + "/voices/list?" + urllib.parse.urlencode({
+        "trustedclienttoken": token,
         "Sec-MS-GEC": signature,
         "Sec-MS-GEC-Version": "2-" + version,
     })

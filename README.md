@@ -48,7 +48,7 @@ make voices VOICES_ARGS=--list
 
 | 提示 | 原因 |
 |---|---|
-| 微软接口拒绝连接 | 自动校准时钟后仍被拒，可能是微软变更了接口或限制了当前网络；1.2.2 及更早版本请升级到 1.2.3，见[接口失效时](#接口失效时) |
+| 微软接口拒绝连接 | 自动校准时钟后仍被拒，可能是微软变更了接口或限制了当前网络；1.3.0 及更早版本请升级到 1.3.1，见[接口失效时](#接口失效时) |
 | 微软语音服务暂时不可用（HTTP 5xx） | 微软服务端临时故障，插件已换连接重试两次仍失败，稍后再试 |
 | 未返回音频 | 音色读不了这种语言且没有可改用的默认音色，或微软偶发不给音频；插件已重试过一次 |
 | 音色 xxx 不存在或已下线 / 音色名称格式无效 | 音色名写错了，或微软下线了这个音色 |
@@ -70,7 +70,7 @@ Bob 报「获取音频失败」而日志里没有 `edge-tts`，说明 Bob 识别
 - **非官方接口，随时可能变**：近两年微软先后加了签名校验、换了端点、开始校验 User-Agent，2026 年仍有间歇性无音频和 503 的报告。历次变更见 [docs/feasibility.md](docs/feasibility.md#风险时间线)。
 - **只有一种音频格式**：24 kHz、48 kbps、单声道 mp3。
 - **没有情感风格和多角色**：接口只接受 Edge 自己会发的 SSML，Azure 的 `express-as` 用不了。
-- **文本会发给微软**：朗读内容经 WebSocket 发到 `api.msedgeservices.com`，插件校时用的音色列表请求发到 `speech.platform.bing.com`，不要用它读敏感内容。
+- **文本会发给微软**：朗读内容经 WebSocket 发到 `speech.platform.bing.com`，不要用它读敏感内容。
 - **云服务器 IP 可能被限流**：家用宽带正常。
 
 ## 免责声明
@@ -79,9 +79,9 @@ Bob 报「获取音频失败」而日志里没有 `edge-tts`，说明 Bob 识别
 
 ## 接口失效时
 
-2026-10-10 起，旧合成地址在部分地区开始返回 403，上游 edge-tts 7.2.8 也受影响，见 [issue #490](https://github.com/rany2/edge-tts/issues/490)。1.2.2 将合成连接迁移到 `api.msedgeservices.com/tts/cognitiveservices/websocket/v1`，用 `Ocp-Apim-Subscription-Key` 传原客户端令牌。1.2.3 按上游 [v2 修复 #492](https://github.com/rany2/edge-tts/pull/492) 直接切换到 v2 签名：CS64 与 SHA-256 共同生成 `16hex-64hex` 令牌，版本标记同步改为 `2-143.0.3650.75`，合成和 `make voices` 均使用该格式。
+2026-10-10 起，合成地址在部分地区开始返回 403，上游 edge-tts 7.2.8 也受影响，见 [issue #490](https://github.com/rany2/edge-tts/issues/490)。1.2.2 曾把合成连接迁移到 `api.msedgeservices.com/tts/cognitiveservices/websocket/v1` 绕开；上游则在 [v2 修复 #492](https://github.com/rany2/edge-tts/pull/492) 里换了签名、没有换端点，1.2.3 跟进切换到 v2 签名：CS64 与 SHA-256 共同生成 `16hex-64hex` 令牌，版本标记同步改为 `2-143.0.3650.75`，合成和 `make voices` 均使用该格式。
 
-插件继续用旧音色列表校时，维护工具使用新接口的签名列表核对音色。明确的服务端 5xx 直接重试，不依赖校时端点的可用性；其他握手失败仍保留校时重签。`make upstream` 将当前确切的新旧 WebSocket 地址组合标为已知差异，签名或未知地址的变化仍会报错，不能为了与上游一致而改回旧地址。这些修复仍依赖微软的内部接口，后续可能继续变更。
+2026-10-26 起，`api.msedgeservices.com` 对 WebSocket 握手只回 200 空响应、不再升级协议，它的音色列表也一样，1.2.2 到 1.3.0 因此一律报「微软接口拒绝连接」。1.3.1 改回上游一直在用的 `speech.platform.bing.com/consumer/speech/synthesize/readaloud/edge/v1`，用 `TrustedClientToken` 传客户端令牌，v2 签名不变；校时和 `make voices` 用同一域名下的音色列表。协议常量自此与上游完全一致，`make upstream` 不再有已知差异，任何端点或签名的出入都会报错。明确的服务端 5xx 直接重试，不依赖校时端点的可用性；其他握手失败仍保留校时重签。这些修复仍依赖微软的内部接口，后续可能继续变更。
 
 先用 edge-tts 确认是不是接口本身的问题：
 
@@ -119,12 +119,12 @@ make install    # 打包并交给 Bob 安装
 发版：改 `src/info.json` 的 `version` 并合并到 main，然后打带注释的标签并推送：
 
 ```bash
-git tag -a v1.3.0 -m "服务端持续 5xx 时提示服务暂时不可用" && git push origin v1.3.0
+git tag -a v1.3.1 -m "改回上游合成端点，修复微软接口拒绝连接" && git push origin v1.3.1
 ```
 
 Release 工作流始终切换到标签指向的提交再 `make pack`，保存确切包路径后创建 Release 并上传，最后从包内 `info.json` 读取版本、identifier 和最低 Bob 版本，登记 `appcast.json` 并推回 main。即使 main 已升级到下一版本，登记的仍是刚发布的包。标签注释的第一行是 appcast 更新说明，全文是 Release 说明；引号、反引号和 `$` 均作为原文处理。
 
-重复运行时，已有同版本资产会先下载并核对文件内容：一致就复用原包及其 sha256，不重新上传；内容不同就失败，需改版本号重新发布。已有同标签 Release 若为草稿或预发布，工作流会在处理资产前失败，阻止登记到稳定更新源；新建 Release 明确使用正式发布。appcast 也拒绝同一版本换成不同 sha256，一致的重复登记保留原发布时间。推不了 main 时会推到 `appcast/v1.3.0` 分支并尝试开 PR。在 Actions 页手动运行 Release 时，工作流按当前所选分支的版本查找或创建标签，然后固定从该标签构建。
+重复运行时，已有同版本资产会先下载并核对文件内容：一致就复用原包及其 sha256，不重新上传；内容不同就失败，需改版本号重新发布。已有同标签 Release 若为草稿或预发布，工作流会在处理资产前失败，阻止登记到稳定更新源；新建 Release 明确使用正式发布。appcast 也拒绝同一版本换成不同 sha256，一致的重复登记保留原发布时间。推不了 main 时会推到 `appcast/v1.3.1` 分支并尝试开 PR。在 Actions 页手动运行 Release 时，工作流按当前所选分支的版本查找或创建标签，然后固定从该标签构建。
 
 手动发版可按 `make pack` → 创建 Release 上传插件包 → `make appcast DESC="更新说明"` → 提交 `appcast.json` 的顺序做，Release 资产上传之前不要登记 appcast。登记旧版本时可显式指定包路径：`make appcast BUNDLE=dist/bob-plugin-edge-tts-1.2.0.bobplugin DESC="更新说明"`；较复杂的说明也可用 `python3 scripts/update_appcast.py --bundle 包路径 --desc-file 说明文件`。
 

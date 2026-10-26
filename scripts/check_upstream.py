@@ -3,8 +3,8 @@
 
 微软每隔几个月就收紧一次 Edge「大声朗读」接口的校验（浏览器版本号、端点、握手头），
 上游 edge-tts 一般几天内跟进，新值都写在它的 src/edge_tts/constants.py 里。这个脚本把该文件
-拉下来，与 src/config.js 的常量和 src/protocol.js 里 buildHeaders() 发出的握手头逐项比对，
-有新增出入时需要核实是否更新；明确保留的端点差异只接受下面列出的固定地址组合。
+拉下来，与 src/config.js 的常量（含合成地址 query 里的令牌参数）和 src/protocol.js 里 buildHeaders()
+发出的握手头逐项比对，有出入时需要核实是否更新。
 只用标准库；上游文件用 ast 读字面量，不执行它的代码。
 
 用法：
@@ -13,7 +13,7 @@
     python3 scripts/check_upstream.py --upstream-file constants.py [--version-file version.py]
                                                            # 用本地文件对照，不联网
 
-退出码：0 一致或仅有已知差异；1 有新增出入或解析失败；2 拉不到上游文件。
+退出码：0 一致；1 有出入或解析失败；2 拉不到上游文件。
 .github/workflows/upstream.yml 每周跑一次，有出入时自动开 issue。
 """
 import argparse
@@ -23,6 +23,7 @@ import json
 import re
 import sys
 import urllib.error
+import urllib.parse
 import urllib.request
 from pathlib import Path
 
@@ -38,19 +39,12 @@ VERSION_URL = RAW_BASE + "version.py"
 # config.js 里参与对照的常量，按依赖顺序排列（后面的会引用前面的）
 CONFIG_VARIABLES = (
     "TRUSTED_CLIENT_TOKEN", "CHROMIUM_FULL_VERSION", "CHROMIUM_MAJOR_VERSION", "SEC_MS_GEC_VERSION",
-    "BASE_URL", "WSS_URL", "VOICE_LIST_URL", "USER_AGENT", "ORIGIN", "ACCEPT_LANGUAGE",
+    "BASE_URL", "WSS_URL", "WSS_TOKEN_QUERY_NAME", "VOICE_LIST_URL", "USER_AGENT", "ORIGIN",
+    "ACCEPT_LANGUAGE",
 )
 
 DYNAMIC = "（每次连接随机生成）"
 MISSING = "（未发送）"
-
-# 2026-10-12 按上游 issue #490 的实测迁移；旧合成端点在部分地区返回 403。
-# 只接受这一对完整地址，任一侧域名、路径或协议再变化时必须重新核实，不能宽泛忽略端点。
-KNOWN_WSS_ENDPOINT_DIFFERENCE = (
-    "wss://api.msedgeservices.com/tts/cognitiveservices/websocket/v1",
-    "wss://speech.platform.bing.com/consumer/speech/synthesize/readaloud/edge/v1",
-)
-KNOWN_WSS_ENDPOINT_NOTE = "已知差异：按 issue #490 保留已验证的新合成端点，上游仍用旧端点"
 
 
 class Unsupported(Exception):
@@ -311,10 +305,9 @@ def header_skipped(name: str) -> bool:
 def compare_all(config: dict, plugin_headers: dict, upstream: dict, problems: list) -> list:
     rows: list = []
 
-    def add(label, ours, theirs, ok=None, note="", known_difference=False):
+    def add(label, ours, theirs, ok=None, note=""):
         rows.append({"label": label, "ours": str(ours), "theirs": str(theirs),
-                     "ok": (ours == theirs) if ok is None else ok, "note": note,
-                     "known_difference": known_difference})
+                     "ok": (ours == theirs) if ok is None else ok, "note": note})
 
     def upstream_value(name):
         if name not in upstream:
@@ -335,10 +328,15 @@ def compare_all(config: dict, plugin_headers: dict, upstream: dict, problems: li
         if theirs is None or ours is None:
             continue
         theirs = transform(str(theirs)) if transform else str(theirs)
-        if ours_name == "WSS_URL" and (ours, theirs) == KNOWN_WSS_ENDPOINT_DIFFERENCE:
-            add(label, ours, theirs, ok=True, note=KNOWN_WSS_ENDPOINT_NOTE, known_difference=True)
-        else:
-            add(label, ours, theirs)
+        add(label, ours, theirs)
+
+    # 上游把令牌写在 WSS_URL 的 query 里，ConnectionId 和签名是连接时才追加的。路径一致不等于协议一致：
+    # 这段静态 query 单独对照，参数名、令牌或多出来的参数变了都算出入。
+    upstream_wss = upstream.get("WSS_URL")
+    if upstream_wss is not None and "WSS_TOKEN_QUERY_NAME" in config and "TRUSTED_CLIENT_TOKEN" in config:
+        theirs_query = urllib.parse.urlsplit(str(upstream_wss)).query
+        add("WebSocket 地址的令牌参数", config["WSS_TOKEN_QUERY_NAME"] + "=" + config["TRUSTED_CLIENT_TOKEN"],
+            theirs_query or "（上游地址没有 query）")
 
     merged = upstream_value("WSS_HEADERS")
     if isinstance(merged, dict):
@@ -387,14 +385,12 @@ def write_report(path: Path, rows: list, problems: list, upstream_version: str,
     elif problems or any(not row["ok"] for row in rows):
         lines += [
             "### 处理办法", "",
-            "1. 逐项核实上表的「不一致」和解析问题。标记为「已知差异」的新合成端点继续保留，不要为了与上游一致而改回旧地址；未知端点变化先验证可用性。",
+            "1. 逐项核实上表的「不一致」和解析问题。端点有变化时，先按 README「接口失效时」的方法确认新地址能完成握手并返回音频，再修改。",
             "2. 确认需要更新后修改 `src/config.js`；握手头有增减时同步改 `src/protocol.js` 的 `buildHeaders()`。签名版本变化时同步核对 `Sec-MS-GEC` 计算和 `Sec-MS-GEC-Version`，不能只改版本标记。",
             "3. `make test` 通过后用 `make voices` 复核音色，再装进 Bob 真机朗读一次。",
             "4. 改 `src/info.json` 的 `version`，按 README「开发」一节发版。",
             "", "对照方法见 README「接口失效时」。",
         ]
-    elif any(row.get("known_difference") for row in rows):
-        lines.append("对照通过：除上表注明的已知差异外，其余项目一致，无新增漂移。")
     else:
         lines.append("全部一致，不需要更新。")
     path.write_text("\n".join(lines) + "\n", encoding="utf-8")
@@ -460,13 +456,9 @@ def main() -> int:
     source = "edge-tts master" if upstream_version == "未知" else f"edge-tts {upstream_version}"
     if drift or problems:
         print(f"upstream FAIL  与 {source} 的 constants.py 有 {len(drift)} 项出入、"
-              f"{len(problems)} 个解析问题，请逐项核实（已知新端点继续保留）")
+              f"{len(problems)} 个解析问题，请逐项核实")
         return 1
-    known = sum(bool(row["known_difference"]) for row in rows)
-    if known:
-        print(f"upstream ok    与 {source} 的 constants.py 对照通过（{len(rows)} 项，{known} 项已知差异）")
-    else:
-        print(f"upstream ok    与 {source} 的 constants.py 一致（{len(rows)} 项）")
+    print(f"upstream ok    与 {source} 的 constants.py 一致（{len(rows)} 项）")
     return 0
 
 

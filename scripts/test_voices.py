@@ -23,7 +23,7 @@ class VoiceMaintenanceTests(unittest.TestCase):
         headers = Message()
         if server_date:
             headers["Date"] = server_date
-        return urllib.error.HTTPError("https://api.msedgeservices.com", code, "rejected", headers, io.BytesIO())
+        return urllib.error.HTTPError("https://speech.platform.bing.com", code, "rejected", headers, io.BytesIO())
 
     def run_main(self, side_effect):
         output = io.StringIO()
@@ -33,21 +33,21 @@ class VoiceMaintenanceTests(unittest.TestCase):
             status = check_voices.main()
         return status, output.getvalue()
 
-    def test_fetch_uses_signed_list_on_synthesis_host(self):
+    def test_fetch_uses_signed_list_on_readaloud_host(self):
         voices = [{"ShortName": "zh-CN-XiaoxiaoNeural"}]
         with mock.patch.object(check_voices.time, "time", return_value=1700000000), \
                 mock.patch.object(check_voices.urllib.request, "urlopen", return_value=self.response(voices)) as fetch:
             self.assertEqual(check_voices.fetch_voices(self.config), voices)
         url = urlsplit(fetch.call_args.args[0].full_url)
-        self.assertEqual(url.hostname, "api.msedgeservices.com")
-        self.assertEqual(url.path, "/tts/cognitiveservices/voices/list")
+        self.assertEqual(url.hostname, "speech.platform.bing.com")
+        self.assertEqual(url.path, "/consumer/speech/synthesize/readaloud/voices/list")
         query = parse_qs(url.query)
-        self.assertEqual(query["Ocp-Apim-Subscription-Key"], ["6A5AA1D4EAFF4E9FB37E23D68491D6F4"])
+        self.assertEqual(query["trustedclienttoken"], ["6A5AA1D4EAFF4E9FB37E23D68491D6F4"])
         self.assertEqual(query["Sec-MS-GEC"], [
             "2CD23A2CA0B2595A-F3C846C370E05F9CC83ACC5F995C5F5D87A4D0F14CE8936A0F902E64099E38A2"
         ])
         self.assertEqual(query["Sec-MS-GEC-Version"], ["2-143.0.3650.75"])
-        self.assertNotIn("trustedclienttoken", query)
+        self.assertNotIn("Ocp-Apim-Subscription-Key", query)
 
     def test_v2_signatures_match_fixed_vectors(self):
         vectors = {
