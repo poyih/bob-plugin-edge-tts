@@ -3,8 +3,8 @@
 
 微软每隔几个月就收紧一次 Edge「大声朗读」接口的校验（浏览器版本号、端点、握手头），
 上游 edge-tts 一般几天内跟进，新值都写在它的 src/edge_tts/constants.py 里。这个脚本把该文件
-拉下来，与 src/config.js 的常量和 src/protocol.js 里 buildHeaders() 发出的握手头逐项比对，
-有出入时需要核实是否更新。
+拉下来，与 src/config.js 的常量（含合成地址 query 里的令牌参数）和 src/protocol.js 里 buildHeaders()
+发出的握手头逐项比对，有出入时需要核实是否更新。
 只用标准库；上游文件用 ast 读字面量，不执行它的代码。
 
 用法：
@@ -23,6 +23,7 @@ import json
 import re
 import sys
 import urllib.error
+import urllib.parse
 import urllib.request
 from pathlib import Path
 
@@ -38,7 +39,8 @@ VERSION_URL = RAW_BASE + "version.py"
 # config.js 里参与对照的常量，按依赖顺序排列（后面的会引用前面的）
 CONFIG_VARIABLES = (
     "TRUSTED_CLIENT_TOKEN", "CHROMIUM_FULL_VERSION", "CHROMIUM_MAJOR_VERSION", "SEC_MS_GEC_VERSION",
-    "BASE_URL", "WSS_URL", "VOICE_LIST_URL", "USER_AGENT", "ORIGIN", "ACCEPT_LANGUAGE",
+    "BASE_URL", "WSS_URL", "WSS_TOKEN_QUERY_NAME", "VOICE_LIST_URL", "USER_AGENT", "ORIGIN",
+    "ACCEPT_LANGUAGE",
 )
 
 DYNAMIC = "（每次连接随机生成）"
@@ -327,6 +329,14 @@ def compare_all(config: dict, plugin_headers: dict, upstream: dict, problems: li
             continue
         theirs = transform(str(theirs)) if transform else str(theirs)
         add(label, ours, theirs)
+
+    # 上游把令牌写在 WSS_URL 的 query 里，ConnectionId 和签名是连接时才追加的。路径一致不等于协议一致：
+    # 这段静态 query 单独对照，参数名、令牌或多出来的参数变了都算出入。
+    upstream_wss = upstream.get("WSS_URL")
+    if upstream_wss is not None and "WSS_TOKEN_QUERY_NAME" in config and "TRUSTED_CLIENT_TOKEN" in config:
+        theirs_query = urllib.parse.urlsplit(str(upstream_wss)).query
+        add("WebSocket 地址的令牌参数", config["WSS_TOKEN_QUERY_NAME"] + "=" + config["TRUSTED_CLIENT_TOKEN"],
+            theirs_query or "（上游地址没有 query）")
 
     merged = upstream_value("WSS_HEADERS")
     if isinstance(merged, dict):

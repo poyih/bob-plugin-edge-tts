@@ -37,6 +37,7 @@ class UpstreamMonitoringTests(unittest.TestCase):
             "SEC_MS_GEC_VERSION": "2-143.0.3650.75",
             "BASE_URL": "speech.platform.bing.com/consumer/speech/synthesize/readaloud",
             "WSS_URL": "wss://speech.platform.bing.com/consumer/speech/synthesize/readaloud/edge/v1",
+            "WSS_TOKEN_QUERY_NAME": "TrustedClientToken",
             "VOICE_LIST_URL": "https://speech.platform.bing.com/consumer/speech/synthesize/readaloud/voices/list?trustedclienttoken=fixture-token",
             "USER_AGENT": "fixture-agent",
             "ORIGIN": "fixture-origin",
@@ -64,25 +65,56 @@ class UpstreamMonitoringTests(unittest.TestCase):
         self.assertTrue(all(row["ok"] for row in rows))
         self.assertEqual([row["label"] for row in rows if row["note"]], [])
 
-    def test_upstream_query_string_is_ignored_when_comparing_endpoints(self):
+    def test_endpoint_row_compares_path_and_token_row_compares_query(self):
         rows, _ = self.compare()
-        row = next(row for row in rows if row["label"] == "WebSocket 地址")
-        self.assertTrue(row["ok"])
-        self.assertEqual(row["theirs"], self.config["WSS_URL"])
-        self.assertEqual(row["ours"], self.config["WSS_URL"])
+        by_label = {row["label"]: row for row in rows}
+        endpoint = by_label["WebSocket 地址"]
+        self.assertTrue(endpoint["ok"])
+        self.assertEqual((endpoint["ours"], endpoint["theirs"]), (self.config["WSS_URL"], self.config["WSS_URL"]))
+        token = by_label["WebSocket 地址的令牌参数"]
+        self.assertTrue(token["ok"])
+        self.assertEqual((token["ours"], token["theirs"]),
+                         ("TrustedClientToken=fixture-token", "TrustedClientToken=fixture-token"))
 
     def test_upstream_websocket_changes_fail(self):
-        for endpoint in (
-            "wss://speech.platform.bing.com/consumer/speech/synthesize/readaloud/edge/v2",
-            "wss://api.msedgeservices.com/tts/cognitiveservices/websocket/v1?Ocp-Apim-Subscription-Key=fixture-token",
-            "wss://unknown.example/consumer/speech/synthesize/readaloud/edge/v1",
-            "ws://speech.platform.bing.com/consumer/speech/synthesize/readaloud/edge/v1",
+        for endpoint, failing in (
+            ("wss://speech.platform.bing.com/consumer/speech/synthesize/readaloud/edge/v2?TrustedClientToken=fixture-token",
+             ["WebSocket 地址"]),
+            ("wss://unknown.example/consumer/speech/synthesize/readaloud/edge/v1?TrustedClientToken=fixture-token",
+             ["WebSocket 地址"]),
+            ("ws://speech.platform.bing.com/consumer/speech/synthesize/readaloud/edge/v1?TrustedClientToken=fixture-token",
+             ["WebSocket 地址"]),
+            # 路径和令牌参数名都变了：两行都要报
+            ("wss://api.msedgeservices.com/tts/cognitiveservices/websocket/v1?Ocp-Apim-Subscription-Key=fixture-token",
+             ["WebSocket 地址", "WebSocket 地址的令牌参数"]),
         ):
             with self.subTest(endpoint=endpoint):
                 self.upstream["WSS_URL"] = endpoint
                 rows, problems = self.compare()
                 self.assertEqual(problems, [])
-                self.assertEqual([row["label"] for row in rows if not row["ok"]], ["WebSocket 地址"])
+                self.assertEqual([row["label"] for row in rows if not row["ok"]], failing)
+
+    def test_upstream_token_query_changes_fail_even_when_path_matches(self):
+        path = "wss://speech.platform.bing.com/consumer/speech/synthesize/readaloud/edge/v1"
+        for query in ("?Ocp-Apim-Subscription-Key=fixture-token", "", "?TrustedClientToken=fixture-token&Region=cn",
+                      "?TrustedClientToken=other-token"):
+            with self.subTest(query=query):
+                self.upstream["WSS_URL"] = path + query
+                rows, problems = self.compare()
+                self.assertEqual(problems, [])
+                self.assertEqual([row["label"] for row in rows if not row["ok"]], ["WebSocket 地址的令牌参数"])
+        row = next(row for row in rows if row["label"] == "WebSocket 地址的令牌参数")
+        self.assertEqual(row["theirs"], "TrustedClientToken=other-token")
+        self.upstream["WSS_URL"] = path
+        rows, _ = self.compare()
+        row = next(row for row in rows if row["label"] == "WebSocket 地址的令牌参数")
+        self.assertIn("没有 query", row["theirs"])
+
+    def test_plugin_token_query_name_drift_fails(self):
+        self.config["WSS_TOKEN_QUERY_NAME"] = "Ocp-Apim-Subscription-Key"
+        rows, problems = self.compare()
+        self.assertEqual(problems, [])
+        self.assertEqual([row["label"] for row in rows if not row["ok"]], ["WebSocket 地址的令牌参数"])
 
     def test_plugin_websocket_changes_fail(self):
         for endpoint in (

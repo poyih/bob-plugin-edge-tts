@@ -15,6 +15,8 @@ var BASE_URL = "speech.platform.bing.com/consumer/speech/synthesize/readaloud";
 // WebSocket 握手只回 200 空响应、不再升级协议，而这个端点带 v2 签名正常，1.3.1 改回。
 // 变更经过见 docs/feasibility.md 的风险时间线。
 var WSS_URL = "wss://" + BASE_URL + "/edge/v1";
+// 客户端令牌在合成地址 query 里的参数名；make upstream 会把它与上游 WSS_URL 的 query 对照
+var WSS_TOKEN_QUERY_NAME = "TrustedClientToken";
 // 音色列表：握手被拒时读它的 Date 头校时；make voices 也从这里核对音色
 var VOICE_LIST_URL = "https://" + BASE_URL + "/voices/list?trustedclienttoken=" + TRUSTED_CLIENT_TOKEN;
 
@@ -194,6 +196,7 @@ exports.TRUSTED_CLIENT_TOKEN = TRUSTED_CLIENT_TOKEN;
 exports.CHROMIUM_FULL_VERSION = CHROMIUM_FULL_VERSION;
 exports.SEC_MS_GEC_VERSION = SEC_MS_GEC_VERSION;
 exports.WSS_URL = WSS_URL;
+exports.WSS_TOKEN_QUERY_NAME = WSS_TOKEN_QUERY_NAME;
 exports.VOICE_LIST_URL = VOICE_LIST_URL;
 exports.USER_AGENT = USER_AGENT;
 exports.ORIGIN = ORIGIN;
